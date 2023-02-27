@@ -1,0 +1,19 @@
+{
+	"extends": "./.denoTypes/tsconfig.json",
+	"compilerOptions": {
+		"lib": ["dom", "dom.iterable", "esnext", "WebWorker"],
+		"target": "esnext",
+		"checkJs": true,
+		"module": "esnext",
+		"useDefineForClassFields": true,
+		"strict": true
+	},
+	"include": [
+		"src/**/*.js",
+		"test",
+		"scripts"
+	],
+	"files": [
+		"src/main.js"
+	]
+}
