@@ -3,7 +3,7 @@
 		"checkJs": true
 	},
 	"tasks": {
-		// Runs the application in development mode, allowing you to quickly make changes and try them out.
+		// Updates third party types. Useful if you want type checking in your IDE.
 		"dev": "deno run --unstable -A scripts/dev.js",
 		// run the tests
 		"test": "deno test --no-check=remote",
