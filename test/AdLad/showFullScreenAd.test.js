@@ -72,6 +72,10 @@ Deno.test({
 				didShowAd: false,
 				errorReason: "unknown",
 			},
+			{
+				didShowAd: null,
+				errorReason: null,
+			},
 		];
 
 		for (const test of tests) {

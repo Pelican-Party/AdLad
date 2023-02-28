@@ -6,18 +6,13 @@ import { getBestPlugin } from "./getBestPlugin.js";
  * @property {boolean?} didShowAd
  * @property {AdErrorReason?} errorReason
  */
-/**
- * @typedef ShowRewardedAdResult
- * @property {boolean} didShowAd
- * @property {AdErrorReason?} errorReason
- */
 
 /**
  * @typedef AdLadPlugin
  * @property {string} name
  * @property {() => void} [shouldBeActive]
  * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd]
- * @property {() => Promise<ShowRewardedAdResult>} [showRewardedAd]
+ * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd]
  */
 
 /**
@@ -72,10 +67,9 @@ export class AdLad {
 				errorReason: "unknown",
 			};
 		} else {
-			const didShowAd = pluginResult.didShowAd == true;
-			if (didShowAd) {
+			if (pluginResult.didShowAd === true || pluginResult.didShowAd === null) {
 				result = {
-					didShowAd: true,
+					didShowAd: pluginResult.didShowAd,
 					errorReason: null,
 				};
 			} else {
