@@ -12,6 +12,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * @typedef AdLadPlugin
  * @property {string} name
  * @property {() => void} [shouldBeActive]
+ * @property {() => void} [initialize]
  * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd]
  * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd]
  */
@@ -36,6 +37,13 @@ export class AdLad {
 			}
 		}
 		this._plugin = getBestPlugin(plugins);
+		if (this._plugin && this._plugin.initialize) {
+			try {
+				this._plugin.initialize();
+			} catch (e) {
+				console.warn(`The "${this._plugin.name}" AdLad plugin failed to initialize`, e);
+			}
+		}
 	}
 
 	/**
@@ -46,6 +54,9 @@ export class AdLad {
 		return null;
 	}
 
+	/**
+	 * @returns {Promise<ShowFullScreenAdResult>}
+	 */
 	async showFullScreenAd() {
 		if (!this._plugin) {
 			return {
@@ -63,6 +74,9 @@ export class AdLad {
 		return sanitizeFullScreenAdResult(pluginResult);
 	}
 
+	/**
+	 * @returns {Promise<ShowFullScreenAdResult>}
+	 */
 	async showRewardedAd() {
 		if (!this._plugin) {
 			return {
