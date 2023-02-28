@@ -1,6 +1,7 @@
 import { getBestPlugin } from "./getBestPlugin.js";
+import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
-/** @typedef {"no-active-plugin" | "not-supported" | "adblocker" | "unknown"} AdErrorReason */
+/** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "unknown"} AdErrorReason */
 /**
  * @typedef ShowFullScreenAdResult
  * @property {boolean?} didShowAd
@@ -59,39 +60,23 @@ export class AdLad {
 			};
 		}
 		const pluginResult = await this._plugin.showFullScreenAd();
-		/** @type {ShowFullScreenAdResult} */
-		let result;
-		if (!pluginResult || typeof pluginResult != "object") {
-			result = {
-				didShowAd: false,
-				errorReason: "unknown",
-			};
-		} else {
-			if (pluginResult.didShowAd === true || pluginResult.didShowAd === null) {
-				result = {
-					didShowAd: pluginResult.didShowAd,
-					errorReason: null,
-				};
-			} else {
-				/** @type {AdErrorReason[]} */
-				const validReasons = [
-					"adblocker",
-					"not-supported",
-					"unknown",
-				];
-				const reasonIndex = validReasons.indexOf(/** @type {any} */ (pluginResult.errorReason));
-				let errorReason = validReasons[reasonIndex];
-				if (!errorReason) errorReason = "unknown";
-				result = {
-					didShowAd: false,
-					errorReason,
-				};
-			}
-		}
-
-		return result;
+		return sanitizeFullScreenAdResult(pluginResult);
 	}
 
 	async showRewardedAd() {
+		if (!this._plugin) {
+			return {
+				didShowAd: false,
+				errorReason: "no-active-plugin",
+			};
+		}
+		if (!this._plugin.showRewardedAd) {
+			return {
+				didShowAd: false,
+				errorReason: "not-supported",
+			};
+		}
+		const pluginResult = await this._plugin.showRewardedAd();
+		return sanitizeFullScreenAdResult(pluginResult);
 	}
 }
