@@ -1,6 +1,5 @@
 /**
  * @fileoverview Bundles AdLad into a single file so that it can be published to package managers.
- * Also generates a d.ts declaration file for usage with TypeScript.
  */
 
 import { rollup } from "npm:rollup@3.17.3";
