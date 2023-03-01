@@ -8,7 +8,7 @@
 		// run the tests
 		"test": "deno test --no-check=remote",
 		// performs all tasks that are generally required for ci to pass
-		"check": "deno fmt && deno lint && deno task test",
+		"check": "deno fmt --check && deno lint && deno task test",
 		// Bundles AdLad into a single file so that it can be published to package managers.
 		"bundle": "deno run --allow-read --allow-write --allow-env --allow-run scripts/bundle.js"
 	},
