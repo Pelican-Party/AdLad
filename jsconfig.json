@@ -12,8 +12,5 @@
 		"src/**/*.js",
 		"test",
 		"scripts"
-	],
-	"files": [
-		"src/main.js"
 	]
 }
