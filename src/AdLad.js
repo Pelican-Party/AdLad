@@ -36,6 +36,7 @@ export class AdLad {
 				plugins = options.plugins || [];
 			}
 		}
+		/** @private */
 		this._plugin = getBestPlugin(plugins);
 		if (this._plugin && this._plugin.initialize) {
 			try {
@@ -44,6 +45,8 @@ export class AdLad {
 				console.warn(`The "${this._plugin.name}" AdLad plugin failed to initialize`, e);
 			}
 		}
+		/** @private */
+		this._isShowingAd = false;
 	}
 
 	/**
@@ -55,42 +58,63 @@ export class AdLad {
 	}
 
 	/**
+	 * @param {(() => Promise<ShowFullScreenAdResult>) | undefined} showFn
+	 * @returns {Promise<ShowFullScreenAdResult>}
+	 */
+	async _showPluginFullScreenAd(showFn) {
+		if (this._isShowingAd) {
+			throw new Error("An ad is already playing");
+		}
+		this._isShowingAd = true;
+		try {
+			if (!this._plugin) {
+				return {
+					didShowAd: false,
+					errorReason: "no-active-plugin",
+				};
+			}
+			if (!showFn) {
+				return {
+					didShowAd: false,
+					errorReason: "not-supported",
+				};
+			}
+			let pluginResult;
+			try {
+				pluginResult = await showFn();
+			} catch (e) {
+				console.error(
+					`An error occurred while trying to display an ad from the "${this._plugin.name}" plugin:`,
+					e,
+				);
+			}
+			if (!pluginResult) {
+				return {
+					didShowAd: false,
+					errorReason: "unknown",
+				};
+			}
+			return sanitizeFullScreenAdResult(pluginResult);
+		} finally {
+			this._isShowingAd = false;
+		}
+	}
+
+	/**
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showFullScreenAd() {
-		if (!this._plugin) {
-			return {
-				didShowAd: false,
-				errorReason: "no-active-plugin",
-			};
-		}
-		if (!this._plugin.showFullScreenAd) {
-			return {
-				didShowAd: false,
-				errorReason: "not-supported",
-			};
-		}
-		const pluginResult = await this._plugin.showFullScreenAd();
-		return sanitizeFullScreenAdResult(pluginResult);
+		let showFn;
+		if (this._plugin) showFn = this._plugin.showFullScreenAd;
+		return await this._showPluginFullScreenAd(showFn);
 	}
 
 	/**
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showRewardedAd() {
-		if (!this._plugin) {
-			return {
-				didShowAd: false,
-				errorReason: "no-active-plugin",
-			};
-		}
-		if (!this._plugin.showRewardedAd) {
-			return {
-				didShowAd: false,
-				errorReason: "not-supported",
-			};
-		}
-		const pluginResult = await this._plugin.showRewardedAd();
-		return sanitizeFullScreenAdResult(pluginResult);
+		let showFn;
+		if (this._plugin) showFn = this._plugin.showRewardedAd;
+		return await this._showPluginFullScreenAd(showFn);
 	}
 }
