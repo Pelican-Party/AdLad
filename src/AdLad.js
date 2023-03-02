@@ -18,8 +18,8 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd]
  * @property {() => void | Promise<void>} [gameplayStart]
  * @property {() => void | Promise<void>} [gameplayStop]
- * @property {() => void | Promise<void>} [loadingStart]
- * @property {() => void | Promise<void>} [loadingStop]
+ * @property {() => void | Promise<void>} [loadStart]
+ * @property {() => void | Promise<void>} [loadStop]
  */
 
 /**
@@ -181,13 +181,13 @@ export class AdLad {
 		this._loadingState = new BooleanState({
 			defaultState: true,
 			trueCall: () => {
-				if (this._plugin && this._plugin.loadingStart) {
-					return this._plugin.loadingStart();
+				if (this._plugin && this._plugin.loadStart) {
+					return this._plugin.loadStart();
 				}
 			},
 			falseCall: () => {
-				if (this._plugin && this._plugin.loadingStop) {
-					return this._plugin.loadingStop();
+				if (this._plugin && this._plugin.loadStop) {
+					return this._plugin.loadStop();
 				}
 			},
 		});
@@ -209,11 +209,11 @@ export class AdLad {
 		this._gameplayStartState.setState(false);
 	}
 
-	loadingStart() {
+	loadStart() {
 		this._loadingState.setState(true);
 	}
 
-	loadingStop() {
+	loadStop() {
 		this._loadingState.setState(false);
 	}
 
