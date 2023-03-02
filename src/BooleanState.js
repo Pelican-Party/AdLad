@@ -28,7 +28,7 @@ export class BooleanState {
 		 * @private
 		 * The gameplay start state that was last reported to the plugin.
 		 */
-		this.lastSentState = false;
+		this.lastSentState = defaultState;
 		/** @private @type {Promise<void>} */
 		this.lastSentStatePromise = Promise.resolve();
 		/** @private */
