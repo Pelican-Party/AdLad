@@ -1,9 +1,9 @@
 import { assertEquals, equal } from "$std/testing/asserts.ts";
-import { sanitizeFullScreenAdResult } from "../../src/sanitizeFullScreenAdResult.js";
+import { sanitizeFullScreenAdResult } from "../src/sanitizeFullScreenAdResult.js";
 
 /**
  * @param {unknown[]} pluginReturnDatas
- * @param {import("../../src/AdLad.js").ShowFullScreenAdResult} expectedReturnData
+ * @param {import("../src/AdLad.js").ShowFullScreenAdResult} expectedReturnData
  */
 async function runTests(pluginReturnDatas, expectedReturnData) {
 	for (const pluginReturnData of pluginReturnDatas) {
@@ -18,7 +18,7 @@ async function runTests(pluginReturnDatas, expectedReturnData) {
 Deno.test({
 	name: "Values that should returns the exact results from the plugin",
 	async fn() {
-		/** @type {import("../../src/AdLad.js").ShowFullScreenAdResult[]} */
+		/** @type {import("../src/AdLad.js").ShowFullScreenAdResult[]} */
 		const tests = [
 			{
 				didShowAd: true,
