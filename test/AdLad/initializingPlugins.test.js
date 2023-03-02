@@ -53,7 +53,7 @@ Deno.test({
 				},
 			};
 
-			const adlad = new AdLad([plugin]);
+			const adLad = new AdLad([plugin]);
 
 			assertSpyCalls(consoleWarnSpy, 1);
 			assertSpyCall(consoleWarnSpy, 0, {
@@ -64,7 +64,7 @@ Deno.test({
 			});
 
 			// other calls should still work as well
-			assertEquals(await adlad.showFullScreenAd(), {
+			assertEquals(await adLad.showFullScreenAd(), {
 				didShowAd: false,
 				errorReason: "not-supported",
 			});
