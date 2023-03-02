@@ -7,9 +7,8 @@ export function getBestPlugin(plugins = []) {
 		if (!plugin.shouldBeActive) return true;
 		return plugin.shouldBeActive();
 	});
-	if (desiredActivePlugins.length > 1) {
-		const pluginNames = desiredActivePlugins.map((plugin) => plugin.name).join(", ");
-		throw new Error(`More than one plugin requested to be active: ${pluginNames}.`);
+	if (desiredActivePlugins.length > 0) {
+		return desiredActivePlugins[desiredActivePlugins.length - 1];
 	}
-	return desiredActivePlugins[0] || null;
+	return null;
 }

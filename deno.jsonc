@@ -6,9 +6,9 @@
 		// Updates third party types. Useful if you want type checking in your IDE.
 		"dev": "deno run --unstable -A scripts/dev.js",
 		// run the tests
-		"test": "deno test --no-check=remote",
+		"test": "deno test --no-check",
 		// performs all tasks that are generally required for ci to pass
-		"check": "deno fmt --check && deno lint && deno task test",
+		"check": "deno fmt --check && deno lint && deno test --no-check=remote",
 		// Bundles AdLad into a single file so that it can be published to package managers.
 		"bundle": "deno run --allow-read --allow-write --allow-env --allow-run scripts/bundle.js"
 	},

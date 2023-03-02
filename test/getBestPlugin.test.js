@@ -1,4 +1,4 @@
-import { assertEquals, assertStrictEquals, assertThrows } from "$std/testing/asserts.ts";
+import { assertEquals, assertStrictEquals } from "$std/testing/asserts.ts";
 import { getBestPlugin } from "../src/getBestPlugin.js";
 
 Deno.test({
@@ -45,23 +45,28 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Throws when more than one plugin wants to be active",
+	name: "Picks the last plugin when more than one wishes to be active",
 	fn() {
 		/** @type {import("../src/AdLad.js").AdLadPlugin} */
 		const pluginA = {
 			name: "plugin a",
+			shouldBeActive: () => false,
 		};
 		/** @type {import("../src/AdLad.js").AdLadPlugin} */
 		const pluginB = {
 			name: "plugin b",
 		};
-		assertThrows(
-			() => {
-				getBestPlugin([pluginA, pluginB]);
-			},
-			Error,
-			"More than one plugin requested to be active: plugin a, plugin b.",
-		);
+		/** @type {import("../src/AdLad.js").AdLadPlugin} */
+		const pluginC = {
+			name: "plugin c",
+		};
+		/** @type {import("../src/AdLad.js").AdLadPlugin} */
+		const pluginD = {
+			name: "plugin d",
+			shouldBeActive: () => false,
+		};
+		const result = getBestPlugin([pluginA, pluginB, pluginC, pluginD]);
+		assertStrictEquals(result, pluginC);
 	},
 });
 
