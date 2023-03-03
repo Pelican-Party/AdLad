@@ -1,7 +1,7 @@
 import { assertEquals } from "$std/testing/asserts.ts";
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { initializingPluginTest, waitForMicroTasks } from "../shared.js";
+import { initializingPluginTest, waitForMicrotasks } from "../shared.js";
 
 /**
  * @param {import("../../src/AdLad.js").AdLadPlugin} plugin
@@ -56,14 +56,14 @@ Deno.test({
 			loadStop() {},
 		});
 		const adLad = new AdLad([plugin]);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 1);
 
 		adLad.loadStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(stopSpy, 1);
 		adLad.loadStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 2);
 	},
 });
@@ -78,17 +78,17 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 
 		adLad.loadStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.loadStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 1);
 		adLad.loadStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.loadStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 2);
 		adLad.loadStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 	},
 });
 
@@ -102,14 +102,14 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 
 		adLad.loadStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.loadStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(stopSpy, 1);
 		adLad.loadStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.loadStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(stopSpy, 2);
 	},
 });
@@ -150,7 +150,7 @@ Deno.test({
 		assertSpyCalls(stopSpy, 0);
 
 		adLad.loadStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 1);
 	},
 });

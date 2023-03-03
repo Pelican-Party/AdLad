@@ -1,6 +1,6 @@
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { BooleanState } from "../src/BooleanState.js";
-import { waitForMicroTasks } from "./shared.js";
+import { waitForMicrotasks } from "./shared.js";
 
 /**
  * @param {Object} options
@@ -45,11 +45,11 @@ function booleanStateTest({
 		state,
 		async resolveTrue() {
 			resolveTrue();
-			await waitForMicroTasks();
+			await waitForMicrotasks();
 		},
 		async resolveFalse() {
 			resolveFalse();
-			await waitForMicroTasks();
+			await waitForMicrotasks();
 		},
 	};
 }
@@ -60,10 +60,10 @@ Deno.test({
 		const { state, trueSpy, falseSpy } = booleanStateTest();
 
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 1);
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(falseSpy, 1);
 	},
 });
@@ -74,31 +74,31 @@ Deno.test({
 		const { state, trueSpy, falseSpy } = booleanStateTest();
 
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(falseSpy, 0);
 
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 1);
 
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 1);
 
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(falseSpy, 1);
 
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(falseSpy, 1);
 
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 2);
 
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(falseSpy, 2);
 	},
 });
@@ -118,7 +118,7 @@ Deno.test({
 
 		// Now it gets called because an event loop happened in between two calls.
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		state.setState(false);
 		assertSpyCalls(trueSpy, 1);
 		await resolveTrue();
@@ -163,20 +163,20 @@ Deno.test({
 		const { state, trueSpy, falseSpy } = booleanStateTest({ defaultState: true, defaultPluginState: true });
 
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		// Does nothing, state starts at true
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 
 		state.setState(false);
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		// Nothing gets called because nothing was changed the same event loop.
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 1);
 	},
@@ -197,12 +197,12 @@ Deno.test({
 
 		// Does nothing, promise is not resolved
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 
 		resolvePromise();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 	},
@@ -227,7 +227,7 @@ Deno.test({
 		assertSpyCalls(falseSpy, 0);
 
 		resolvePromise();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 
 		assertSpyCalls(trueSpy, 1);
 		assertSpyCalls(falseSpy, 0);
@@ -249,25 +249,25 @@ Deno.test({
 
 		// Does nothing, promise is not resolved
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 
 		// Does nothing, promise is not resolved
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 
 		// Does nothing, promise is not resolved
 		state.setState(true);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 
 		// True state was fired before resolving, this should fire the true function
 		resolvePromise();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 1);
 		assertSpyCalls(falseSpy, 0);
 	},
@@ -290,13 +290,13 @@ Deno.test({
 
 		// Does nothing, promise is not resolved
 		state.setState(false);
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 0);
 
 		// True state was fired before resolving, this should fire the true function
 		resolvePromise();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 1);
 	},

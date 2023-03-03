@@ -162,14 +162,15 @@ export class AdLad {
 			}
 		}
 
-		const pluginInitializePromise = pluginInitializeResult || undefined;
+		/** @private */
+		this.pluginInitializePromise = pluginInitializeResult || null;
 
 		/** @private */
 		this._isShowingAd = false;
 
 		/** @private */
 		this._gameplayStartState = new BooleanState({
-			pluginInitializePromise,
+			pluginInitializePromise: this.pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.gameplayStart) {
 					return this._plugin.gameplayStart();
@@ -186,7 +187,7 @@ export class AdLad {
 		this._loadingState = new BooleanState({
 			defaultState: true,
 			defaultPluginState: false,
-			pluginInitializePromise,
+			pluginInitializePromise: this.pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.loadStart) {
 					return this._plugin.loadStart();
@@ -247,6 +248,7 @@ export class AdLad {
 				};
 			}
 			let pluginResult;
+			if (this.pluginInitializePromise) await this.pluginInitializePromise;
 			try {
 				pluginResult = await showFn();
 			} catch (e) {

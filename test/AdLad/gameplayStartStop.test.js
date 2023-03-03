@@ -1,7 +1,7 @@
 import { assertEquals } from "$std/testing/asserts.ts";
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { initializingPluginTest, waitForMicroTasks } from "../shared.js";
+import { initializingPluginTest, waitForMicrotasks } from "../shared.js";
 
 /**
  * @param {import("../../src/AdLad.js").AdLadPlugin} plugin
@@ -58,10 +58,10 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 
 		adLad.gameplayStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 1);
 		adLad.gameplayStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(stopSpy, 1);
 	},
 });
@@ -76,15 +76,15 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 
 		adLad.gameplayStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 1);
 		adLad.gameplayStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.gameplayStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(startSpy, 2);
 		adLad.gameplayStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 	},
 });
 
@@ -98,14 +98,14 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 
 		adLad.gameplayStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.gameplayStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(stopSpy, 1);
 		adLad.gameplayStart();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		adLad.gameplayStop();
-		await waitForMicroTasks();
+		await waitForMicrotasks();
 		assertSpyCalls(stopSpy, 2);
 	},
 });

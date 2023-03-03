@@ -11,14 +11,14 @@ export class BooleanState {
 	 * to call adLad.loadStart right after instantiation.
 	 * @param {boolean} [options.defaultPluginState] The default state that sdks expect. For example,
 	 * sdks usually expect loadStart to be called right after initialization.
-	 * @param {Promise<void>} [options.pluginInitializePromise]
+	 * @param {Promise<void>?} [options.pluginInitializePromise]
 	 * @param {() => Promise<void> | void} options.trueCall
 	 * @param {() => Promise<void> | void} options.falseCall
 	 */
 	constructor({
 		defaultState = false,
 		defaultPluginState = false,
-		pluginInitializePromise,
+		pluginInitializePromise = null,
 		trueCall,
 		falseCall,
 	}) {
