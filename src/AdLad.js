@@ -13,7 +13,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * @typedef AdLadPlugin
  * @property {string} name
  * @property {() => void} [shouldBeActive]
- * @property {() => void} [initialize]
+ * @property {() => void | Promise<void>} [initialize]
  * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd]
  * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd]
  * @property {() => void | Promise<void>} [gameplayStart]
@@ -152,19 +152,24 @@ export class AdLad {
 			foundPlugin = true;
 		}
 
+		/** @type {Promise<void> | void} */
+		let pluginInitializeResult;
 		if (this._plugin && this._plugin.initialize) {
 			try {
-				this._plugin.initialize();
+				pluginInitializeResult = this._plugin.initialize();
 			} catch (e) {
 				console.warn(`The "${this._plugin.name}" AdLad plugin failed to initialize`, e);
 			}
 		}
+
+		const pluginInitializePromise = pluginInitializeResult || undefined;
 
 		/** @private */
 		this._isShowingAd = false;
 
 		/** @private */
 		this._gameplayStartState = new BooleanState({
+			pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.gameplayStart) {
 					return this._plugin.gameplayStart();
@@ -180,6 +185,8 @@ export class AdLad {
 		/** @private */
 		this._loadingState = new BooleanState({
 			defaultState: true,
+			defaultPluginState: false,
+			pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.loadStart) {
 					return this._plugin.loadStart();

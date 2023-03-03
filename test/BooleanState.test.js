@@ -6,10 +6,14 @@ import { waitForMicroTasks } from "./shared.js";
  * @param {Object} options
  * @param {boolean} [options.autoResolve]
  * @param {boolean} [options.defaultState]
+ * @param {boolean} [options.defaultPluginState]
+ * @param {Promise<void>} [options.pluginInitializePromise]
  */
 function booleanStateTest({
 	autoResolve = true,
 	defaultState = undefined,
+	defaultPluginState = undefined,
+	pluginInitializePromise,
 } = {}) {
 	let resolveTrue = () => {};
 	let resolveFalse = () => {};
@@ -28,7 +32,9 @@ function booleanStateTest({
 	});
 
 	const state = new BooleanState({
+		pluginInitializePromise,
 		defaultState,
+		defaultPluginState,
 		trueCall: trueSpy,
 		falseCall: falseSpy,
 	});
@@ -154,7 +160,7 @@ Deno.test({
 Deno.test({
 	name: "Different default state",
 	async fn() {
-		const { state, trueSpy, falseSpy } = booleanStateTest({ defaultState: true });
+		const { state, trueSpy, falseSpy } = booleanStateTest({ defaultState: true, defaultPluginState: true });
 
 		state.setState(true);
 		await waitForMicroTasks();
@@ -170,6 +176,126 @@ Deno.test({
 		assertSpyCalls(falseSpy, 0);
 
 		state.setState(false);
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 1);
+	},
+});
+
+Deno.test({
+	name: "Doesn't fire plugin calls when called while pluginInitializePromise is not resolved",
+	async fn() {
+		let resolvePromise = () => {};
+		/** @type {Promise<void>} */
+		const promise = new Promise((resolve) => {
+			resolvePromise = resolve;
+		});
+
+		const { state, trueSpy, falseSpy } = booleanStateTest({
+			pluginInitializePromise: promise,
+		});
+
+		// Does nothing, promise is not resolved
+		state.setState(true);
+		await waitForMicroTasks();
+		state.setState(false);
+		await waitForMicroTasks();
+
+		resolvePromise();
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+	},
+});
+
+Deno.test({
+	name: "State is fired on the plugin, even when no call was made",
+	async fn() {
+		let resolvePromise = () => {};
+		/** @type {Promise<void>} */
+		const promise = new Promise((resolve) => {
+			resolvePromise = resolve;
+		});
+
+		const { trueSpy, falseSpy } = booleanStateTest({
+			pluginInitializePromise: promise,
+			defaultState: true,
+			defaultPluginState: false,
+		});
+
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+
+		resolvePromise();
+		await waitForMicroTasks();
+
+		assertSpyCalls(trueSpy, 1);
+		assertSpyCalls(falseSpy, 0);
+	},
+});
+
+Deno.test({
+	name: "Doesn't fire plugin calls until pluginInitializePromise is resolved",
+	async fn() {
+		let resolvePromise = () => {};
+		/** @type {Promise<void>} */
+		const promise = new Promise((resolve) => {
+			resolvePromise = resolve;
+		});
+
+		const { state, trueSpy, falseSpy } = booleanStateTest({
+			pluginInitializePromise: promise,
+		});
+
+		// Does nothing, promise is not resolved
+		state.setState(true);
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+
+		// Does nothing, promise is not resolved
+		state.setState(false);
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+
+		// Does nothing, promise is not resolved
+		state.setState(true);
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+
+		// True state was fired before resolving, this should fire the true function
+		resolvePromise();
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 1);
+		assertSpyCalls(falseSpy, 0);
+	},
+});
+
+Deno.test({
+	name: "Doesn't fire plugin calls until pluginInitializePromise is resolved, default state is true",
+	async fn() {
+		let resolvePromise = () => {};
+		/** @type {Promise<void>} */
+		const promise = new Promise((resolve) => {
+			resolvePromise = resolve;
+		});
+
+		const { state, trueSpy, falseSpy } = booleanStateTest({
+			pluginInitializePromise: promise,
+			defaultState: true,
+			defaultPluginState: true,
+		});
+
+		// Does nothing, promise is not resolved
+		state.setState(false);
+		await waitForMicroTasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+
+		// True state was fired before resolving, this should fire the true function
+		resolvePromise();
 		await waitForMicroTasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 1);

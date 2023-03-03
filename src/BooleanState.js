@@ -6,15 +6,24 @@
 export class BooleanState {
 	/**
 	 * @param {Object} options
-	 * @param {boolean} [options.defaultState]
+	 * @param {boolean} [options.defaultState] The default state that the AdLad api uses. For example,
+	 * games always start in the loading state for developers using AdLad. That way developers don't need
+	 * to call adLad.loadStart right after instantiation.
+	 * @param {boolean} [options.defaultPluginState] The default state that sdks expect. For example,
+	 * sdks usually expect loadStart to be called right after initialization.
+	 * @param {Promise<void>} [options.pluginInitializePromise]
 	 * @param {() => Promise<void> | void} options.trueCall
 	 * @param {() => Promise<void> | void} options.falseCall
 	 */
 	constructor({
 		defaultState = false,
+		defaultPluginState = false,
+		pluginInitializePromise,
 		trueCall,
 		falseCall,
 	}) {
+		/** @private */
+		this.pluginInitializePromise = pluginInitializePromise;
 		/** @private */
 		this.trueCall = trueCall;
 		/** @private */
@@ -28,11 +37,16 @@ export class BooleanState {
 		 * @private
 		 * The gameplay start state that was last reported to the plugin.
 		 */
-		this.lastSentState = defaultState;
+		this.lastSentState = defaultPluginState;
 		/** @private @type {Promise<void>} */
 		this.lastSentStatePromise = Promise.resolve();
 		/** @private */
 		this.lastUpdateSymbol = Symbol();
+
+		(async () => {
+			await this.pluginInitializePromise;
+			await this.updateState();
+		})();
 	}
 
 	/**
@@ -47,9 +61,8 @@ export class BooleanState {
 	async updateState() {
 		const sym = Symbol();
 		this.lastUpdateSymbol = sym;
-		if (this.lastSentStatePromise) {
-			await this.lastSentStatePromise;
-		}
+		if (this.pluginInitializePromise) await this.pluginInitializePromise;
+		if (this.lastSentStatePromise) await this.lastSentStatePromise;
 		if (this.lastUpdateSymbol != sym) {
 			// This function was called again while we were waiting, so we won't do anything.
 			return;

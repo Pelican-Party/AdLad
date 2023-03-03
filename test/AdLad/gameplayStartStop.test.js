@@ -1,7 +1,21 @@
 import { assertEquals } from "$std/testing/asserts.ts";
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { waitForMicroTasks } from "../shared.js";
+import { initializingPluginTest, waitForMicroTasks } from "../shared.js";
+
+/**
+ * @param {import("../../src/AdLad.js").AdLadPlugin} plugin
+ */
+function createSpyPlugin(plugin) {
+	/** @type {import("$std/testing/mock.ts").Spy<import("../../src/AdLad.js").AdLadPlugin, unknown[], unknown>} */
+	let startSpy = spy();
+	if (plugin.gameplayStart) startSpy = spy(plugin, "gameplayStart");
+
+	/** @type {import("$std/testing/mock.ts").Spy<import("../../src/AdLad.js").AdLadPlugin, unknown[], unknown>} */
+	let stopSpy = spy();
+	if (plugin.gameplayStop) stopSpy = spy(plugin, "gameplayStop");
+	return { startSpy, stopSpy, plugin };
+}
 
 Deno.test({
 	name: "Is a no op when no plugin is active",
@@ -36,16 +50,12 @@ Deno.test({
 Deno.test({
 	name: "state is passed to plugins",
 	async fn() {
-		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
-		const plugin = {
+		const { plugin, startSpy, stopSpy } = createSpyPlugin({
 			name: "plugin",
 			gameplayStart() {},
 			gameplayStop() {},
-		};
-
+		});
 		const adLad = new AdLad([plugin]);
-		const startSpy = spy(plugin, "gameplayStart");
-		const stopSpy = spy(plugin, "gameplayStop");
 
 		adLad.gameplayStart();
 		await waitForMicroTasks();
@@ -59,12 +69,10 @@ Deno.test({
 Deno.test({
 	name: "A plugin that only supports gameplay start",
 	async fn() {
-		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
-		const plugin = {
+		const { plugin, startSpy } = createSpyPlugin({
 			name: "plugin",
 			gameplayStart() {},
-		};
-		const startSpy = spy(plugin, "gameplayStart");
+		});
 		const adLad = new AdLad([plugin]);
 
 		adLad.gameplayStart();
@@ -83,12 +91,10 @@ Deno.test({
 Deno.test({
 	name: "A plugin that only supports gameplay stop",
 	async fn() {
-		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
-		const plugin = {
+		const { plugin, stopSpy } = createSpyPlugin({
 			name: "plugin",
 			gameplayStop() {},
-		};
-		const stopSpy = spy(plugin, "gameplayStop");
+		});
 		const adLad = new AdLad([plugin]);
 
 		adLad.gameplayStart();
@@ -101,5 +107,25 @@ Deno.test({
 		adLad.gameplayStop();
 		await waitForMicroTasks();
 		assertSpyCalls(stopSpy, 2);
+	},
+});
+
+Deno.test({
+	name: "gameplayStart is not called until after the plugin has initialized",
+	async fn() {
+		const { plugin, startSpy, stopSpy } = createSpyPlugin({
+			name: "plugin",
+			gameplayStart() {},
+			gameplayStop() {},
+		});
+		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
+
+		adLad.gameplayStart();
+		assertSpyCalls(startSpy, 0);
+		assertSpyCalls(stopSpy, 0);
+
+		await resolveInitialize();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 0);
 	},
 });
