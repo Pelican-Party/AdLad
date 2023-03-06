@@ -79,14 +79,15 @@ Deno.test({
 
 		adLad.loadStop();
 		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
 		adLad.loadStart();
 		await waitForMicrotasks();
-		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(startSpy, 2);
 		adLad.loadStop();
 		await waitForMicrotasks();
 		adLad.loadStart();
 		await waitForMicrotasks();
-		assertSpyCalls(startSpy, 2);
+		assertSpyCalls(startSpy, 3);
 		adLad.loadStop();
 		await waitForMicrotasks();
 	},
@@ -132,7 +133,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Nothing is called when loadStop is called before the plugin is initialized",
+	name: "loadStart and loadStop are both called before the plugin is initialized",
 	async fn() {
 		const { plugin, startSpy, stopSpy } = createSpyPlugin({
 			name: "plugin",
@@ -146,11 +147,11 @@ Deno.test({
 		assertSpyCalls(stopSpy, 0);
 
 		await resolveInitialize();
-		assertSpyCalls(startSpy, 0);
-		assertSpyCalls(stopSpy, 0);
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 1);
 
 		adLad.loadStart();
 		await waitForMicrotasks();
-		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(startSpy, 2);
 	},
 });

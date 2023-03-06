@@ -1,5 +1,6 @@
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
-import { BooleanState } from "../src/BooleanState.js";
+import { assertEquals } from "$std/testing/asserts.ts";
+import { BooleanState, filterStateQueue } from "../src/BooleanState.js";
 import { waitForMicrotasks } from "./shared.js";
 
 /**
@@ -200,11 +201,13 @@ Deno.test({
 		await waitForMicrotasks();
 		state.setState(false);
 		await waitForMicrotasks();
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
 
 		resolvePromise();
 		await waitForMicrotasks();
-		assertSpyCalls(trueSpy, 0);
-		assertSpyCalls(falseSpy, 0);
+		assertSpyCalls(trueSpy, 1);
+		assertSpyCalls(falseSpy, 1);
 	},
 });
 
@@ -301,3 +304,39 @@ Deno.test({
 		assertSpyCalls(falseSpy, 1);
 	},
 });
+
+/**
+ * @param {boolean} currentState
+ * @param {boolean[]} queue
+ * @param {boolean[]} expectedQueue
+ */
+function queStateTest(currentState, queue, expectedQueue) {
+	Deno.test({
+		name: `filters the queue state correctly: current: ${currentState}, queue: ${queue.join(",")} -> ${
+			expectedQueue.join(",")
+		}`,
+		fn() {
+			const result = filterStateQueue(currentState, queue);
+			assertEquals(result, expectedQueue);
+		},
+	});
+}
+
+queStateTest(true, [], []);
+queStateTest(false, [], []);
+queStateTest(false, [false], []);
+queStateTest(true, [true], []);
+queStateTest(true, [false], [false]);
+queStateTest(true, [false, false], [false]);
+queStateTest(true, [false, true], [false, true]);
+queStateTest(false, [true, false], [true, false]);
+queStateTest(false, [true, true], [true]);
+queStateTest(false, [false, true], [true]);
+queStateTest(false, [true, false, false], [true, false]);
+
+queStateTest(true, [false, true, false, true], [false, true]);
+queStateTest(true, [false, true, true, true, false], [false]);
+queStateTest(false, [true, false, true, false, true], [true]);
+queStateTest(false, [true, false, true, false], [true, false]);
+queStateTest(false, [true, true, true, true], [true]);
+queStateTest(false, [false, true, true, true], [true]);

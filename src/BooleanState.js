@@ -25,27 +25,33 @@ export class BooleanState {
 		/** @private */
 		this.pluginInitializePromise = pluginInitializePromise;
 		/** @private */
+		this.pluginInitialized = false;
+		/** @private */
 		this.trueCall = trueCall;
 		/** @private */
 		this.falseCall = falseCall;
 		/**
 		 * @private
-		 * The gameplay start state that was last reported by the user.
-		 */
-		this.lastReceivedState = defaultState;
-		/**
-		 * @private
 		 * The gameplay start state that was last reported to the plugin.
 		 */
 		this.lastSentState = defaultPluginState;
+		/** @private @type {boolean[]} */
+		this.stateQueue = [defaultState];
 		/** @private @type {Promise<void>} */
 		this.lastSentStatePromise = Promise.resolve();
+		/**
+		 * When the state is switched while waiting for plugin initialization,
+		 * we want to set this flag so that we can toggle the state twice once it loads.
+		 * @private
+		 */
+		this.needsDoubleToggle = false;
 		/** @private */
 		this.lastUpdateSymbol = Symbol();
 
 		(async () => {
 			await this.pluginInitializePromise;
 			await this.updateState();
+			this.pluginInitialized = true;
 		})();
 	}
 
@@ -53,7 +59,7 @@ export class BooleanState {
 	 * @param {boolean} state
 	 */
 	setState(state) {
-		this.lastReceivedState = state;
+		this.stateQueue.push(state);
 		this.updateState();
 	}
 
@@ -67,9 +73,62 @@ export class BooleanState {
 			// This function was called again while we were waiting, so we won't do anything.
 			return;
 		}
-		if (this.lastReceivedState == this.lastSentState) return;
-		const fn = this.lastReceivedState ? this.trueCall : this.falseCall;
-		this.lastSentStatePromise = fn() || Promise.resolve();
-		this.lastSentState = this.lastReceivedState;
+
+		if (this.pluginInitialized) {
+			if (this.stateQueue.length > 0) {
+				const lastState = this.stateQueue[this.stateQueue.length - 1];
+				if (lastState == this.lastSentState) {
+					this.stateQueue = [];
+				} else {
+					this.stateQueue = [lastState];
+				}
+			}
+		} else {
+			this.stateQueue = filterStateQueue(this.lastSentState, this.stateQueue);
+		}
+
+		if (this.stateQueue.length > 0) {
+			const newState = /** @type {boolean} */ (this.stateQueue.shift());
+			const fn = newState ? this.trueCall : this.falseCall;
+			this.lastSentStatePromise = fn() || Promise.resolve();
+			this.lastSentState = newState;
+			this.updateState();
+		}
 	}
+}
+
+/**
+ * Filters a queue to remove unnecessary and duplicate entries.
+ * @param {boolean} currentState
+ * @param {boolean[]} queue
+ */
+export function filterStateQueue(currentState, queue) {
+	queue = filterQueueDuplicates(currentState, queue);
+
+	// filter duplicate double switches
+	if (queue.length > 0) {
+		const first = queue[0];
+		const last = queue[queue.length - 1];
+		queue = [first, last];
+	}
+
+	queue = filterQueueDuplicates(currentState, queue);
+
+	return queue;
+}
+
+/**
+ * @param {boolean} startState
+ * @param {boolean[]} queue
+ */
+function filterQueueDuplicates(startState, queue) {
+	const filteredDuplicates = [];
+	let lastEntry = startState;
+	for (const entry of queue) {
+		if (entry != lastEntry) {
+			filteredDuplicates.push(entry);
+			lastEntry = entry;
+		}
+	}
+	return filteredDuplicates;
 }

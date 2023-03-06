@@ -1,2 +1,3 @@
 deno.lock
 dist/AdLad.js
+node_modules
