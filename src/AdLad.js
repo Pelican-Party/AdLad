@@ -155,11 +155,15 @@ export class AdLad {
 		/** @type {Promise<void> | void} */
 		let pluginInitializeResult;
 		if (this._plugin && this._plugin.initialize) {
-			try {
-				pluginInitializeResult = this._plugin.initialize();
-			} catch (e) {
-				console.warn(`The "${this._plugin.name}" AdLad plugin failed to initialize`, e);
-			}
+			const certainInitialize = this._plugin.initialize;
+			const name = this._plugin.name;
+			pluginInitializeResult = (async () => {
+				try {
+					await certainInitialize();
+				} catch (e) {
+					console.warn(`The "${name}" AdLad plugin failed to initialize`, e);
+				}
+			})();
 		}
 
 		/** @private */

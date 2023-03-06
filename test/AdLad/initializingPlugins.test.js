@@ -1,6 +1,7 @@
 import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
 import { assertEquals } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
+import { waitForMicrotasks } from "../shared.js";
 
 Deno.test({
 	name: "Plugins are initialized when they are chosen as active plugin",
@@ -54,6 +55,43 @@ Deno.test({
 			};
 
 			const adLad = new AdLad([plugin]);
+
+			assertSpyCalls(consoleWarnSpy, 1);
+			assertSpyCall(consoleWarnSpy, 0, {
+				args: [
+					'The "plugin" AdLad plugin failed to initialize',
+					error,
+				],
+			});
+
+			// other calls should still work as well
+			assertEquals(await adLad.showFullScreenAd(), {
+				didShowAd: false,
+				errorReason: "not-supported",
+			});
+		} finally {
+			consoleWarnSpy.restore();
+		}
+	},
+});
+
+Deno.test({
+	name: "Errors during async initialization are caught",
+	async fn() {
+		const consoleWarnSpy = stub(console, "warn", () => {});
+		try {
+			const error = new Error("oh no");
+			/** @type {import("../../src/AdLad.js").AdLadPlugin} */
+			const plugin = {
+				name: "plugin",
+				async initialize() {
+					await waitForMicrotasks();
+					throw error;
+				},
+			};
+
+			const adLad = new AdLad([plugin]);
+			await waitForMicrotasks();
 
 			assertSpyCalls(consoleWarnSpy, 1);
 			assertSpyCall(consoleWarnSpy, 0, {

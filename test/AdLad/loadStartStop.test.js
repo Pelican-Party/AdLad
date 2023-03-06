@@ -155,3 +155,29 @@ Deno.test({
 		assertSpyCalls(startSpy, 2);
 	},
 });
+
+Deno.test({
+	name: "loadStart is still called when plugin initialization rejects",
+	async fn() {
+		const { plugin, startSpy, stopSpy } = createSpyPlugin({
+			name: "plugin",
+			loadStart() {},
+			loadStop() {},
+		});
+		const { adLad, rejectInitialize } = initializingPluginTest(plugin);
+
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 0);
+		assertSpyCalls(stopSpy, 0);
+
+		await rejectInitialize();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 0);
+
+		adLad.loadStop();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 1);
+	},
+});
