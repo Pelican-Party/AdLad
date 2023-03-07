@@ -316,7 +316,7 @@ Deno.test({
 		const error = new Error("oh no");
 		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
 		const plugin = {
-			name: "pluginName",
+			name: "plugin-name",
 			showFullScreenAd() {
 				throw error;
 			},
@@ -349,7 +349,7 @@ Deno.test({
 		assertSpyCalls(consoleErrorSpy, 3);
 		assertSpyCall(consoleErrorSpy, 0, {
 			args: [
-				'An error occurred while trying to display an ad from the "pluginName" plugin:',
+				'An error occurred while trying to display an ad from the "plugin-name" plugin:',
 				error,
 			],
 		});

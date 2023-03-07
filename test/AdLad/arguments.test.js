@@ -50,13 +50,13 @@ Deno.test({
 Deno.test({
 	name: "forcing plugin with the 'plugin' argument",
 	fn() {
-		argumentsTest("pluginB", {
+		argumentsTest("pluginb", {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
-				{ name: "pluginC" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
+				{ name: "pluginc" },
 			],
-			plugin: "pluginB",
+			plugin: "pluginb",
 		});
 	},
 });
@@ -64,22 +64,22 @@ Deno.test({
 Deno.test({
 	name: "forcing an inactive plugin with the 'plugin' argument",
 	fn() {
-		argumentsTest("pluginB", {
+		argumentsTest("pluginb", {
 			plugins: [
 				{
-					name: "pluginA",
+					name: "plugina",
 					shouldBeActive: () => false,
 				},
 				{
-					name: "pluginB",
+					name: "pluginb",
 					shouldBeActive: () => false,
 				},
 				{
-					name: "pluginC",
+					name: "pluginc",
 					shouldBeActive: () => false,
 				},
 			],
-			plugin: "pluginB",
+			plugin: "pluginb",
 		});
 	},
 });
@@ -87,20 +87,20 @@ Deno.test({
 Deno.test({
 	name: "forcing an inactive plugin with the 'plugin' argument, even though others are active",
 	fn() {
-		argumentsTest("pluginB", {
+		argumentsTest("pluginb", {
 			plugins: [
 				{
-					name: "pluginA",
+					name: "plugina",
 				},
 				{
-					name: "pluginB",
+					name: "pluginb",
 					shouldBeActive: () => false,
 				},
 				{
-					name: "pluginC",
+					name: "pluginc",
 				},
 			],
-			plugin: "pluginB",
+			plugin: "pluginb",
 		});
 	},
 });
@@ -179,28 +179,28 @@ function queryStringTest(queryString, expectedPlugin, ...args) {
 Deno.test({
 	name: "plugin from the query string",
 	fn() {
-		queryStringTest("?adlad=pluginB", "pluginB", [
+		queryStringTest("?adlad=pluginb", "pluginb", [
 			{
-				name: "pluginA",
+				name: "plugina",
 			},
 			{
-				name: "pluginB",
+				name: "pluginb",
 			},
 			{
-				name: "pluginC",
+				name: "pluginc",
 			},
 		]);
 
-		queryStringTest("?adlad=pluginB", "pluginB", {
+		queryStringTest("?adlad=pluginb", "pluginb", {
 			plugins: [
 				{
-					name: "pluginA",
+					name: "plugina",
 				},
 				{
-					name: "pluginB",
+					name: "pluginb",
 				},
 				{
-					name: "pluginC",
+					name: "pluginc",
 				},
 			],
 			plugin: "missing",
@@ -211,16 +211,16 @@ Deno.test({
 Deno.test({
 	name: "plugin from the query string even though it's inactive",
 	fn() {
-		queryStringTest("?adlad=pluginB", "pluginB", [
+		queryStringTest("?adlad=pluginb", "pluginb", [
 			{
-				name: "pluginA",
+				name: "plugin-a",
 			},
 			{
-				name: "pluginB",
+				name: "pluginb",
 				shouldBeActive: () => false,
 			},
 			{
-				name: "pluginC",
+				name: "plugin-c",
 			},
 		]);
 	},
@@ -229,18 +229,18 @@ Deno.test({
 Deno.test({
 	name: "allowQueryStringPluginSelection false",
 	fn() {
-		queryStringTest("?adlad=pluginA", "pluginB", {
+		queryStringTest("?adlad=plugina", "pluginb", {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
 			],
 			allowQueryStringPluginSelection: false,
 		});
 
-		queryStringTest("?adlad=pluginA&differentKey=pluginA", "pluginB", {
+		queryStringTest("?adlad=plugina&differentKey=plugina", "pluginb", {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
 			],
 			allowQueryStringPluginSelection: false,
 			pluginSelectQueryStringKey: "differentKey",
@@ -251,12 +251,12 @@ Deno.test({
 Deno.test({
 	name: "Different pluginSelectQueryStringKey provided",
 	fn() {
-		queryStringTest("?adlad=pluginB&wrong=pluginD&correct=pluginC", "pluginC", {
+		queryStringTest("?adlad=pluginb&wrong=plugind&correct=pluginc", "pluginc", {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
-				{ name: "pluginC" },
-				{ name: "pluginD" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
+				{ name: "pluginc" },
+				{ name: "plugind" },
 			],
 			pluginSelectQueryStringKey: "correct",
 		});
@@ -266,20 +266,20 @@ Deno.test({
 Deno.test({
 	name: "invalid query string plugin defaults to fallback",
 	fn() {
-		queryStringTest("?adlad=invalid", "pluginB", {
+		queryStringTest("?adlad=invalid", "pluginb", {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
 			],
 		});
 
-		queryStringTest("?adlad=invalid", "pluginB", {
+		queryStringTest("?adlad=invalid", "pluginb", {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
-				{ name: "pluginC" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
+				{ name: "pluginc" },
 			],
-			plugin: "pluginB",
+			plugin: "pluginb",
 		});
 
 		queryStringTest("?adlad=invalid", null, {
@@ -292,8 +292,8 @@ Deno.test({
 				() => {
 					new AdLad({
 						plugins: [
-							{ name: "pluginA" },
-							{ name: "pluginB" },
+							{ name: "plugina" },
+							{ name: "pluginb" },
 						],
 						plugin: "missing",
 					});
@@ -316,8 +316,8 @@ Deno.test({
 				() => {
 					new AdLad({
 						plugins: [
-							{ name: "pluginA" },
-							{ name: "pluginB" },
+							{ name: "plugina" },
+							{ name: "pluginb" },
 						],
 						invalidQueryStringPluginBehaviour: "error",
 					});
@@ -336,26 +336,26 @@ Deno.test({
 	fn() {
 		queryStringTest("?adlad=invalid", null, {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
-				{ name: "pluginC" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
+				{ name: "pluginc" },
 			],
 			invalidQueryStringPluginBehaviour: "none",
 		});
 		queryStringTest("?adlad=invalid", null, {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
-				{ name: "pluginC" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
+				{ name: "pluginc" },
 			],
-			plugin: "pluginB",
+			plugin: "pluginb",
 			invalidQueryStringPluginBehaviour: "none",
 		});
 		queryStringTest("?adlad=invalid", null, {
 			plugins: [
-				{ name: "pluginA" },
-				{ name: "pluginB" },
-				{ name: "pluginC" },
+				{ name: "plugina" },
+				{ name: "pluginb" },
+				{ name: "pluginc" },
 			],
 			plugin: "alsoInvalid",
 			invalidQueryStringPluginBehaviour: "none",

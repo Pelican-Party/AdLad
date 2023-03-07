@@ -1,5 +1,5 @@
 import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals, assertThrows } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
 import { waitForMicrotasks } from "../shared.js";
 
@@ -108,6 +108,53 @@ Deno.test({
 			});
 		} finally {
 			consoleWarnSpy.restore();
+		}
+	},
+});
+
+Deno.test({
+	name: "providing a plugin with an invalid name throws",
+	fn() {
+		const invalidNames = [
+			"invalid name",
+			"invalidName",
+			"INVALID_NAME",
+			"-invalid",
+			"invalid-",
+			"_invalid",
+			"invalid_",
+		];
+		for (const name of invalidNames) {
+			assertThrows(
+				() => {
+					new AdLad([
+						{
+							name,
+						},
+					]);
+				},
+				Error,
+				`The plugin "${name}" has an invalid name.`,
+			);
+		}
+	},
+});
+
+Deno.test({
+	name: "providing a plugin with a valid name doesn't throw",
+	fn() {
+		const validNames = [
+			"valid-name",
+			"valid_name",
+			"validname",
+			"a",
+		];
+		for (const name of validNames) {
+			new AdLad([
+				{
+					name,
+				},
+			]);
 		}
 	},
 });

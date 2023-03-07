@@ -15,7 +15,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
 /**
  * @typedef AdLadPlugin
- * @property {string} name
+ * @property {string} name The name of your plugin, may only contain lowercase `a-z`, `_` or `-`. May not start or end with `_` or `-`.
  * @property {() => boolean} [shouldBeActive] While it is recommended to users to manually choose a plugin either
  * via the {@linkcode AdLadOptions.plugin} or via the query string, if this is not done,
  * plugin developers can tell AdLad whether they wish their plugin to be the active one.
@@ -148,6 +148,13 @@ export class AdLad {
 				}
 			}
 		}
+
+		for (const plugin of plugins) {
+			if (!plugin.name.match(/^[a-z]([a-z_-]*[a-z])?$/)) {
+				throw new Error(`The plugin "${plugin.name}" has an invalid name.`);
+			}
+		}
+
 		/** @private @type {AdLadPlugin?} */
 		this._plugin = null;
 		let foundPlugin = false;
