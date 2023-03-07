@@ -5,21 +5,43 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 /** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "unknown"} AdErrorReason */
 /**
  * @typedef ShowFullScreenAdResult
- * @property {boolean?} didShowAd
- * @property {AdErrorReason?} errorReason
+ * @property {boolean?} didShowAd - When this is `true` when, ad was shown. In this case `errorReason` will be `null`.
+ * - When this is `false`, `errorReason` is a non `null` value, though it might be `"unknown"` when the error reason wasn't known.
+ * - When this is `null`, the plugin wasn't sure if an ad was shown. In this case `errorReason` will be `null`.
+ * @property {AdErrorReason?} errorReason The reason why an ad wasn't shown,
+ * this is a string when `didShowAd` was `false`, and `null` otherwise.
+ * A list of possible values can be found at {@linkcode AdErrorReason}.
  */
 
 /**
  * @typedef AdLadPlugin
  * @property {string} name
- * @property {() => void} [shouldBeActive]
- * @property {() => void | Promise<void>} [initialize]
- * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd]
- * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd]
- * @property {() => void | Promise<void>} [gameplayStart]
- * @property {() => void | Promise<void>} [gameplayStop]
- * @property {() => void | Promise<void>} [loadStart]
- * @property {() => void | Promise<void>} [loadStop]
+ * @property {() => boolean} [shouldBeActive] While it is recommended to users to manually choose a plugin either
+ * via the {@linkcode AdLadOptions.plugin} or via the query string, if this is not done,
+ * plugin developers can tell AdLad whether they wish their plugin to be the active one.
+ * You can lock at the domain for instance or whether the page is currently embedded on a game portal.
+ * When more than one plugin returns true, the last plugin that was provided will be picked.
+ * @property {() => void | Promise<void>} [initialize] Gets called the moment AdLad is instantiated and your
+ * plugin is chosen as the active plogin. If you return a promise, no other hooks will be called until the hook resolves.
+ * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd] Hook that gets called when the user
+ * wants to show a full screen non rewarded ad. This should return a promise that resolves once the ad is no longer visible.
+ * The return result should contain info about whether an ad was shown.
+ * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
+ * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
+ * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd] Hook that gets called when the user
+ * wants to show a rewarded ad. This should return a promise that resolves once the ad is no longer visible.
+ * The return result should contain info about whether an ad was shown.
+ * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
+ * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
+ * @property {() => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
+ * This will never be called twice in a row without `gameplayStop` being called first, except when the game starts for the first time.
+ * @property {() => void | Promise<void>} [gameplayStop] Hook that gets called when gameplay has stopped.
+ * This will never be called twice in a row without `gameplayStop` being called first.
+ * @property {() => void | Promise<void>} [loadStart] Hook that gets called when loading has started.
+ * This is called automatically once your `initialize` hook promise resolves.
+ * This will never be called twice in a row without `loadStop` being called first, except when the game loads for the first time.
+ * @property {() => void | Promise<void>} [loadStop] Hook that gets called when loading has stopped.
+ * This will never be called twice in a row without `loadStart` being called first.
  */
 
 /**
