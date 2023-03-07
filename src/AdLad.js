@@ -131,7 +131,9 @@ export class AdLad {
 				plugins = options;
 			} else {
 				plugins = options.plugins || [];
-				forcedPlugin = options.plugin || null;
+				if (options.plugin !== undefined) {
+					forcedPlugin = options.plugin;
+				}
 				if (options.allowQueryStringPluginSelection === false) {
 					allowQueryStringPluginSelection = false;
 				}

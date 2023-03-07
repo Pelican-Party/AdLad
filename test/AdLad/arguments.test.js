@@ -122,12 +122,29 @@ Deno.test({
 });
 
 Deno.test({
+	name: "throws when the forced plugin is an empty string",
+	fn() {
+		assertThrows(
+			() => {
+				new AdLad({
+					plugins: [],
+					plugin: "",
+				});
+			},
+			Error,
+			'The plugin "" does not exist.',
+		);
+	},
+});
+
+Deno.test({
 	name: "Selects no plugin when plugin value is 'none'",
 	fn() {
-		new AdLad({
+		const adLad = new AdLad({
 			plugins: [{ name: "plugin" }],
 			plugin: "none",
 		});
+		assertEquals(adLad.activePlugin, null);
 	},
 });
 
