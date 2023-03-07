@@ -121,6 +121,16 @@ Deno.test({
 	},
 });
 
+Deno.test({
+	name: "Selects no plugin when plugin value is 'none'",
+	fn() {
+		new AdLad({
+			plugins: [{ name: "plugin" }],
+			plugin: "none",
+		});
+	},
+});
+
 /**
  * @param {string} queryString
  */

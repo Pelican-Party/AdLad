@@ -42,6 +42,8 @@ const invalidQueryStringBehaviourTypes = [
  * This will override which plugin was chosen by the order of the `plugins` argument,
  * and will activate the provided plugin regardless of whether it choose to be active or not.
  * If the passed value is not an existing plugin, an error will be thrown.
+ * An exception to this is the value `"none"`, which will cause no plugin to be selected.
+ * `"none"` can still be overridden by the query string.
  * @property {boolean} [allowQueryStringPluginSelection] When set to true (which is the default)
  * allows changing the selected plugin using the `?adlad=` query string.
  * You can change the key of the query string parameter using `pluginSelectQueryStringKey`.
@@ -140,11 +142,13 @@ export class AdLad {
 			}
 		}
 		if (!foundPlugin && forcedPlugin != null) {
-			const plugin = plugins.find((p) => p.name == forcedPlugin);
-			if (!plugin) {
-				throw new Error(`The plugin "${forcedPlugin}" does not exist.`);
+			if (forcedPlugin != "none") {
+				const plugin = plugins.find((p) => p.name == forcedPlugin);
+				if (!plugin) {
+					throw new Error(`The plugin "${forcedPlugin}" does not exist.`);
+				}
+				this._plugin = plugin;
 			}
-			this._plugin = plugin;
 			foundPlugin = true;
 		}
 		if (!foundPlugin) {
