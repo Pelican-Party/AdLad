@@ -10,7 +10,7 @@
 		// performs all tasks that are generally required for ci to pass
 		"check": "deno fmt --check && deno lint && deno test --no-check=remote",
 		// Bundles AdLad into a single file so that it can be published to package managers.
-		"bundle": "deno run --allow-read --allow-write --allow-env --allow-run scripts/bundle.js"
+		"bundle": "deno run -A scripts/bundle.js"
 	},
 	"fmt": {
 		"files": {
