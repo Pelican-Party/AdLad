@@ -42,6 +42,10 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * This will never be called twice in a row without `loadStop` being called first, except when the game loads for the first time.
  * @property {() => void | Promise<void>} [loadStop] Hook that gets called when loading has stopped.
  * This will never be called twice in a row without `loadStart` being called first.
+ * @property {boolean} [manualNeedsPause] TODO: This is not implemented yet. Set to `true` (default is `false`) when you manually want to
+ * let AdLad know the value `needsPause` and its events. By default `needsPause` is automatically managed and
+ * set to `true` during full screen ads. But when you enable manual management you have more control over this.
+ * For example, you could make sure `needsPause` never becomes `true` when no ad is shown, even though `showFullScreenAd` was called.
  */
 
 /**
@@ -199,6 +203,23 @@ export class AdLad {
 		this._isShowingAd = false;
 
 		/** @private */
+		this._loadingState = new BooleanState({
+			defaultState: true,
+			defaultPluginState: false,
+			pluginInitializePromise: this.pluginInitializePromise,
+			trueCall: () => {
+				if (this._plugin && this._plugin.loadStart) {
+					return this._plugin.loadStart();
+				}
+			},
+			falseCall: () => {
+				if (this._plugin && this._plugin.loadStop) {
+					return this._plugin.loadStop();
+				}
+			},
+		});
+
+		/** @private */
 		this._gameplayStartState = new BooleanState({
 			pluginInitializePromise: this.pluginInitializePromise,
 			trueCall: () => {
@@ -216,21 +237,9 @@ export class AdLad {
 		this._lastGameplayStartCall = false;
 
 		/** @private */
-		this._loadingState = new BooleanState({
-			defaultState: true,
-			defaultPluginState: false,
-			pluginInitializePromise: this.pluginInitializePromise,
-			trueCall: () => {
-				if (this._plugin && this._plugin.loadStart) {
-					return this._plugin.loadStart();
-				}
-			},
-			falseCall: () => {
-				if (this._plugin && this._plugin.loadStop) {
-					return this._plugin.loadStop();
-				}
-			},
-		});
+		this._needsPause = false;
+		/** @private @type {Set<OnNeedsPauseChangeCallback>} */
+		this._onNeedsPauseChangeCbs = new Set();
 	}
 
 	/**
@@ -268,6 +277,44 @@ export class AdLad {
 	}
 
 	/**
+	 * This is `true` when an ad is playing and your audio should be muted and game paused.
+	 * Use {@linkcode onNeedsPauseChange} to listen for changes.
+	 */
+	get needsPause() {
+		return this._needsPause;
+	}
+
+	/**
+	 * @param {boolean} needsPause
+	 */
+	_setNeedsPause(needsPause) {
+		if (needsPause == this._needsPause) return;
+		this._needsPause = needsPause;
+		this._onNeedsPauseChangeCbs.forEach((cb) => cb(needsPause));
+	}
+
+	/**
+	 * @typedef {(needsPause: boolean) => void} OnNeedsPauseChangeCallback
+	 */
+
+	/**
+	 * Registers a callback that is fired when {@linkcode needsPause} changes.
+	 * Use this to pause your game and mute your audio during ads.
+	 * @param {OnNeedsPauseChangeCallback} cb
+	 */
+	onNeedsPauseChange(cb) {
+		this._onNeedsPauseChangeCbs.add(cb);
+	}
+
+	/**
+	 * Use this to unregister callbacks registered with {@linkcode onNeedsPauseChange}
+	 * @param {OnNeedsPauseChangeCallback} cb
+	 */
+	removeOnNeedsPauseChange(cb) {
+		this._onNeedsPauseChangeCbs.delete(cb);
+	}
+
+	/**
 	 * @param {(() => Promise<ShowFullScreenAdResult>) | undefined} showFn
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
@@ -292,6 +339,7 @@ export class AdLad {
 			}
 			let pluginResult;
 			if (this.pluginInitializePromise) await this.pluginInitializePromise;
+			this._setNeedsPause(true);
 			try {
 				pluginResult = await showFn();
 			} catch (e) {
@@ -309,6 +357,7 @@ export class AdLad {
 			return sanitizeFullScreenAdResult(pluginResult);
 		} finally {
 			this._isShowingAd = false;
+			this._setNeedsPause(false);
 			this._updateGameplayStartState();
 		}
 	}

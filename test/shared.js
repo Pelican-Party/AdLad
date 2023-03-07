@@ -16,22 +16,22 @@ export function waitForMicrotasks() {
 export function initializingPluginTest(plugin) {
 	let resolveInitialize = () => {};
 	let rejectInitialize = () => {};
-	const adLad = new AdLad([
-		{
-			...plugin,
-			initialize() {
-				/** @type {Promise<void>} */
-				const promise = new Promise((resolve, reject) => {
-					resolveInitialize = resolve;
-					rejectInitialize = reject;
-				});
-				return promise;
-			},
+	const newPlugin = {
+		...plugin,
+		initialize() {
+			/** @type {Promise<void>} */
+			const promise = new Promise((resolve, reject) => {
+				resolveInitialize = resolve;
+				rejectInitialize = reject;
+			});
+			return promise;
 		},
-	]);
+	};
+	const adLad = new AdLad([newPlugin]);
 
 	return {
 		adLad,
+		plugin: newPlugin,
 		async resolveInitialize() {
 			resolveInitialize();
 			await waitForMicrotasks();
