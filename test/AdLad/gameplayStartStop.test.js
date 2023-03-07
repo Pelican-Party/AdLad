@@ -129,3 +129,148 @@ Deno.test({
 		assertSpyCalls(stopSpy, 0);
 	},
 });
+
+async function fullScreenAdTest({
+	autoResolveInitialize = true,
+} = {}) {
+	/** @type {string[]} */
+	const log = [];
+	let resolveFullScreen = () => {};
+	const { plugin, startSpy, stopSpy } = createSpyPlugin({
+		name: "plugin",
+		gameplayStart() {
+			log.push("start");
+		},
+		gameplayStop() {
+			log.push("stop");
+		},
+		async showFullScreenAd() {
+			log.push("fullScreenAd");
+			/** @type {Promise<void>} */
+			const promise = new Promise((resolve) => resolveFullScreen = resolve);
+			await promise;
+			log.push("fullScreenAd finish");
+			return {
+				didShowAd: true,
+				errorReason: null,
+			};
+		},
+	});
+
+	const { adLad, resolveInitialize } = initializingPluginTest(plugin);
+
+	if (autoResolveInitialize) {
+		await resolveInitialize();
+	}
+
+	return {
+		adLad,
+		startSpy,
+		stopSpy,
+		log,
+		async resolveFullScreen() {
+			resolveFullScreen();
+			await waitForMicrotasks();
+		},
+	};
+}
+
+Deno.test({
+	name: "Automatically fires gameplay events when displaying full screen events",
+	async fn() {
+		const { adLad, startSpy, stopSpy, resolveFullScreen, log } = await fullScreenAdTest();
+
+		adLad.gameplayStart();
+		await waitForMicrotasks();
+
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 0);
+
+		const adPromise = adLad.showFullScreenAd();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 1);
+
+		await resolveFullScreen();
+		await adPromise;
+		assertSpyCalls(startSpy, 2);
+		assertSpyCalls(stopSpy, 1);
+		assertEquals(log, [
+			"start",
+			"stop",
+			"fullScreenAd",
+			"fullScreenAd finish",
+			"start",
+		]);
+	},
+});
+
+Deno.test({
+	name: "Does not fire gameplaystart when gameplay stop is being called during a full screen ad",
+	async fn() {
+		const { adLad, startSpy, stopSpy, resolveFullScreen, log } = await fullScreenAdTest();
+
+		adLad.gameplayStart();
+		await waitForMicrotasks();
+
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 0);
+
+		const adPromise = adLad.showFullScreenAd();
+		await waitForMicrotasks();
+		assertSpyCalls(stopSpy, 1);
+
+		adLad.gameplayStop();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 1);
+
+		await resolveFullScreen();
+		await adPromise;
+		assertSpyCalls(startSpy, 1);
+
+		adLad.gameplayStart();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 2);
+		assertSpyCalls(stopSpy, 1);
+
+		assertEquals(log, [
+			"start",
+			"stop",
+			"fullScreenAd",
+			"fullScreenAd finish",
+			"start",
+		]);
+	},
+});
+
+Deno.test({
+	name: "Does not fire gameplaystop before a full screen ad when already stopped",
+	async fn() {
+		const { adLad, startSpy, stopSpy, resolveFullScreen, log } = await fullScreenAdTest();
+
+		assertSpyCalls(startSpy, 0);
+		assertSpyCalls(stopSpy, 0);
+
+		const adPromise = adLad.showFullScreenAd();
+		await waitForMicrotasks();
+		assertSpyCalls(stopSpy, 0);
+		assertSpyCalls(startSpy, 0);
+
+		await resolveFullScreen();
+		await adPromise;
+		assertSpyCalls(stopSpy, 0);
+		assertSpyCalls(startSpy, 0);
+
+		adLad.gameplayStart();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCalls(stopSpy, 0);
+
+		assertEquals(log, [
+			"fullScreenAd",
+			"fullScreenAd finish",
+			"start",
+		]);
+	},
+});

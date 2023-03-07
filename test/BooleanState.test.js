@@ -1,7 +1,7 @@
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { assertEquals } from "$std/testing/asserts.ts";
 import { BooleanState, filterStateQueue } from "../src/BooleanState.js";
-import { waitForMicrotasks } from "./shared.js";
+import { assertPromiseResolved, waitForMicrotasks } from "./shared.js";
 
 /**
  * @param {Object} options
@@ -302,6 +302,63 @@ Deno.test({
 		await waitForMicrotasks();
 		assertSpyCalls(trueSpy, 0);
 		assertSpyCalls(falseSpy, 1);
+	},
+});
+
+Deno.test({
+	name: "waitForEmptyQueue resolves once the queue is empty",
+	async fn() {
+		const { state, trueSpy, falseSpy } = booleanStateTest();
+
+		state.setState(true);
+		state.setState(false);
+		await state.waitForEmptyQueue();
+		assertSpyCalls(trueSpy, 1);
+		assertSpyCalls(falseSpy, 1);
+
+		state.setState(true);
+		await state.waitForEmptyQueue();
+		assertSpyCalls(trueSpy, 2);
+		assertSpyCalls(falseSpy, 1);
+	},
+});
+
+Deno.test({
+	name: "waitForEmptyQueue also waits for plugin initialization",
+	async fn() {
+		let resolvePromise = () => {};
+		/** @type {Promise<void>} */
+		const promise = new Promise((resolve) => {
+			resolvePromise = resolve;
+		});
+
+		const { state, trueSpy, falseSpy } = booleanStateTest({
+			pluginInitializePromise: promise,
+		});
+
+		state.setState(true);
+		state.setState(false);
+		const waitPromise = state.waitForEmptyQueue();
+		await assertPromiseResolved(waitPromise, false);
+		assertSpyCalls(trueSpy, 0);
+		assertSpyCalls(falseSpy, 0);
+
+		resolvePromise();
+		await waitForMicrotasks();
+		assertSpyCalls(trueSpy, 1);
+		assertSpyCalls(falseSpy, 1);
+		await assertPromiseResolved(waitPromise, true);
+	},
+});
+
+Deno.test({
+	name: "waitForEmptyQueue resolves when it is already empty",
+	async fn() {
+		const { state } = booleanStateTest();
+
+		await state.waitForEmptyQueue();
+		await state.waitForEmptyQueue();
+		await state.waitForEmptyQueue();
 	},
 });
 

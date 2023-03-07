@@ -80,6 +80,7 @@ Deno.test({
 		const { plugin, showSpy } = createSpyPlugin();
 		const adLad = new AdLad([plugin]);
 		const promise = adLad.showFullScreenAd();
+		await waitForMicrotasks();
 		assertSpyCalls(showSpy, 1);
 		assertEquals(await promise, {
 			didShowAd: true,
@@ -193,15 +194,19 @@ Deno.test({
 
 		// Check if it works again when called after resolving
 		showPromise = adLad.showFullScreenAd();
+		// We need to wait because the plugin hook is not called immediately.
+		await waitForMicrotasks();
 		resolveFullScreen();
 		await showPromise;
 
 		showPromise = adLad.showRewardedAd();
+		await waitForMicrotasks();
 		resolveRewarded();
 		await showPromise;
 
 		// Check if it throws when showing a rewarded ad
 		showPromise = adLad.showRewardedAd();
+		await waitForMicrotasks();
 		await assertRejects(
 			async () => {
 				await adLad.showFullScreenAd();
@@ -221,10 +226,12 @@ Deno.test({
 
 		// Check if it works again when called after resolving
 		showPromise = adLad.showFullScreenAd();
+		await waitForMicrotasks();
 		resolveFullScreen();
 		await showPromise;
 
 		showPromise = adLad.showRewardedAd();
+		await waitForMicrotasks();
 		resolveRewarded();
 		await showPromise;
 	},
@@ -253,6 +260,8 @@ Deno.test({
 
 		// Check if it throws when showing a full screen ad
 		showPromise = adLad.showFullScreenAd();
+		// We need to wait because the plugin hook is not called immediately.
+		await waitForMicrotasks();
 		await assertRejects(
 			async () => {
 				await adLad.showFullScreenAd();
@@ -272,6 +281,7 @@ Deno.test({
 
 		// Check if it works again when called after resolving
 		showPromise = adLad.showFullScreenAd();
+		await waitForMicrotasks();
 		resolveFullScreen();
 		await showPromise;
 

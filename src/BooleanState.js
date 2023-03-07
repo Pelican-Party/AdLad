@@ -37,14 +37,10 @@ export class BooleanState {
 		this.lastSentState = defaultPluginState;
 		/** @private @type {boolean[]} */
 		this.stateQueue = [defaultState];
+		/** @private @type {Set<() => void>} */
+		this.onEmptyQueueCallbacks = new Set();
 		/** @private @type {Promise<void>} */
 		this.lastSentStatePromise = Promise.resolve();
-		/**
-		 * When the state is switched while waiting for plugin initialization,
-		 * we want to set this flag so that we can toggle the state twice once it loads.
-		 * @private
-		 */
-		this.needsDoubleToggle = false;
 		/** @private */
 		this.lastUpdateSymbol = Symbol();
 
@@ -93,7 +89,19 @@ export class BooleanState {
 			this.lastSentStatePromise = fn() || Promise.resolve();
 			this.lastSentState = newState;
 			this.updateState();
+		} else {
+			this.onEmptyQueueCallbacks.forEach((cb) => cb());
+			this.onEmptyQueueCallbacks.clear();
 		}
+	}
+
+	async waitForEmptyQueue() {
+		if (this.stateQueue.length == 0) return;
+		/** @type {Promise<void>} */
+		const promise = new Promise((resolve) => {
+			this.onEmptyQueueCallbacks.add(resolve);
+		});
+		await promise;
 	}
 }
 

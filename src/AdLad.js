@@ -190,6 +190,8 @@ export class AdLad {
 				}
 			},
 		});
+		/** @private */
+		this._lastGameplayStartCall = false;
 
 		/** @private */
 		this._loadingState = new BooleanState({
@@ -217,12 +219,22 @@ export class AdLad {
 		return null;
 	}
 
+	/**
+	 * @private
+	 */
+	async _updateGameplayStartState() {
+		this._gameplayStartState.setState(this._lastGameplayStartCall && !this._isShowingAd);
+		await this._gameplayStartState.waitForEmptyQueue();
+	}
+
 	gameplayStart() {
-		this._gameplayStartState.setState(true);
+		this._lastGameplayStartCall = true;
+		this._updateGameplayStartState();
 	}
 
 	gameplayStop() {
-		this._gameplayStartState.setState(false);
+		this._lastGameplayStartCall = false;
+		this._updateGameplayStartState();
 	}
 
 	loadStart() {
@@ -242,6 +254,7 @@ export class AdLad {
 			throw new Error("An ad is already playing");
 		}
 		this._isShowingAd = true;
+		await this._updateGameplayStartState();
 		try {
 			if (!this._plugin) {
 				return {
@@ -274,6 +287,7 @@ export class AdLad {
 			return sanitizeFullScreenAdResult(pluginResult);
 		} finally {
 			this._isShowingAd = false;
+			this._updateGameplayStartState();
 		}
 	}
 
