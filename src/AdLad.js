@@ -294,6 +294,7 @@ export class AdLad {
 	}
 
 	/**
+	 * @private
 	 * @param {boolean} needsPause
 	 */
 	_setNeedsPause(needsPause) {
@@ -324,6 +325,7 @@ export class AdLad {
 	}
 
 	/**
+	 * @private
 	 * @param {(() => Promise<ShowFullScreenAdResult>) | undefined} showFn
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
