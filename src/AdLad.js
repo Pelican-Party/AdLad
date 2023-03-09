@@ -16,6 +16,8 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 /**
  * @typedef AdLadPluginInitializeContext
  * @property {(needsPause: boolean) => void} setNeedsPause Update the `needsPause` state of AdLad.
+ * You can call this as often as you like, if you call this with the same `needsPause` state twice in a row,
+ * an event is only fired once.
  * Requires {@linkcode AdLadPlugin.manualNeedsPause} to be true and will throw otherwise.
  */
 
