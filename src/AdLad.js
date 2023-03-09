@@ -19,6 +19,10 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * You can call this as often as you like, if you call this with the same `needsPause` state twice in a row,
  * an event is only fired once.
  * Requires {@linkcode AdLadPlugin.manualNeedsPause} to be true and will throw otherwise.
+ * @property {(needsMute: boolean) => void} setNeedsMute Update the `needsMute` state of AdLad.
+ * You can call this as often as you like, if you call this with the same `needsMute` state twice in a row,
+ * an event is only fired once.
+ * Requires {@linkcode AdLadPlugin.manualNeedsMute} to be true and will throw otherwise.
  */
 
 /**
@@ -51,9 +55,13 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * @property {() => void | Promise<void>} [loadStop] Hook that gets called when loading has stopped.
  * This will never be called twice in a row without `loadStart` being called first.
  * @property {boolean} [manualNeedsPause] Set to `true` (default is `false`) when you manually want to
- * let AdLad know the value `needsPause` and its events. By default `needsPause` is automatically managed and
+ * let AdLad know about the value `needsPause` and its events. By default `needsPause` is automatically managed and
  * set to `true` during full screen ads. But when you enable manual management you have more control over this.
  * For example, you could make sure `needsPause` never becomes `true` when no ad is shown, even though `showFullScreenAd` was called.
+ * @property {boolean} [manualNeedsMute] Set to `true` (default is `false`) when you manually want to
+ * let AdLad know about the value `needsMute` and its events. By default `needsMute` is automatically managed and
+ * set to `true` during full screen ads. But when you enable manual management you have more control over this.
+ * For example, you could make sure `needsMute` becomes true once the ad actually loads, instead of the moment it is requested.
  */
 
 /**
@@ -204,11 +212,17 @@ export class AdLad {
 		if (this._plugin && this._plugin.manualNeedsPause) {
 			this._manualNeedsPause = true;
 		}
+		/** @private */
+		this._manualNeedsMute = false;
+		if (this._plugin && this._plugin.manualNeedsMute) {
+			this._manualNeedsMute = true;
+		}
 
 		/** @type {Promise<void> | void} */
 		let pluginInitializeResult;
 		if (this._plugin && this._plugin.initialize) {
 			const manualNeedsPause = this._plugin.manualNeedsPause;
+			const manualNeedsMute = this._plugin.manualNeedsMute;
 			const certainInitialize = this._plugin.initialize;
 			const name = this._plugin.name;
 			pluginInitializeResult = (async () => {
@@ -221,6 +235,14 @@ export class AdLad {
 								);
 							}
 							this._setNeedsPause(needsPause);
+						},
+						setNeedsMute: (needsMute) => {
+							if (!manualNeedsMute) {
+								throw new Error(
+									"Plugin is not allowed to modify needsMute because 'manualNeedsMute' is not set.",
+								);
+							}
+							this._setNeedsMute(needsMute);
 						},
 					});
 				} catch (e) {
@@ -273,6 +295,11 @@ export class AdLad {
 		this._needsPause = false;
 		/** @private @type {Set<OnNeedsPauseChangeCallback>} */
 		this._onNeedsPauseChangeCbs = new Set();
+
+		/** @private */
+		this._needsMute = false;
+		/** @private @type {Set<OnNeedsMuteChangeCallback>} */
+		this._onNeedsMuteChangeCbs = new Set();
 	}
 
 	/**
@@ -310,11 +337,23 @@ export class AdLad {
 	}
 
 	/**
-	 * This is `true` when an ad is playing and your audio should be muted and game paused.
+	 * This is `true` when an ad is playing or about to play and your game should be paused.
+	 * The difference between this and {@linkcode needsMute} is that this becomes `true` a little sooner, the moment
+	 * an ad is requested. Though the actual order in which the two change might differ per plugin.
 	 * Use {@linkcode onNeedsPauseChange} to listen for changes.
 	 */
 	get needsPause() {
 		return this._needsPause;
+	}
+
+	/**
+	 * This is `true` when an ad is playing and your audio should be muted.
+	 * The difference between this and {@linkcode needsPause} is that this becomes `true` a little later when an ad
+	 * is actually playing. Though the actual order in which the two change might differ per plugin.
+	 * Use {@linkcode onNeedsMuteChange} to listen for changes.
+	 */
+	get needsMute() {
+		return this._needsMute;
 	}
 
 	/**
@@ -328,12 +367,21 @@ export class AdLad {
 	}
 
 	/**
-	 * @typedef {(needsPause: boolean) => void} OnNeedsPauseChangeCallback
+	 * @private
+	 * @param {boolean} needsMute
 	 */
+	_setNeedsMute(needsMute) {
+		if (needsMute == this._needsMute) return;
+		this._needsMute = needsMute;
+		this._onNeedsMuteChangeCbs.forEach((cb) => cb(needsMute));
+	}
+
+	/** @typedef {(needsPause: boolean) => void} OnNeedsPauseChangeCallback */
+	/** @typedef {(needsMute: boolean) => void} OnNeedsMuteChangeCallback */
 
 	/**
 	 * Registers a callback that is fired when {@linkcode needsPause} changes.
-	 * Use this to pause your game and mute your audio during ads.
+	 * Use this to pause your game during ads.
 	 * @param {OnNeedsPauseChangeCallback} cb
 	 */
 	onNeedsPauseChange(cb) {
@@ -346,6 +394,23 @@ export class AdLad {
 	 */
 	removeOnNeedsPauseChange(cb) {
 		this._onNeedsPauseChangeCbs.delete(cb);
+	}
+
+	/**
+	 * Registers a callback that is fired when {@linkcode needsPause} changes.
+	 * Use this to mute your game during ads.
+	 * @param {OnNeedsMuteChangeCallback} cb
+	 */
+	onNeedsMuteChange(cb) {
+		this._onNeedsMuteChangeCbs.add(cb);
+	}
+
+	/**
+	 * Use this to unregister callbacks registered with {@linkcode onNeedsMuteChange}
+	 * @param {OnNeedsMuteChangeCallback} cb
+	 */
+	removeOnNeedsMuteChange(cb) {
+		this._onNeedsMuteChangeCbs.delete(cb);
 	}
 
 	/**
@@ -375,6 +440,7 @@ export class AdLad {
 			let pluginResult;
 			if (this.pluginInitializePromise) await this.pluginInitializePromise;
 			if (!this._manualNeedsPause) this._setNeedsPause(true);
+			if (!this._manualNeedsMute) this._setNeedsMute(true);
 			try {
 				pluginResult = await showFn();
 			} catch (e) {
@@ -392,6 +458,7 @@ export class AdLad {
 			return sanitizeFullScreenAdResult(pluginResult);
 		} finally {
 			this._isShowingAd = false;
+			if (!this._manualNeedsMute) this._setNeedsMute(false);
 			if (!this._manualNeedsPause) this._setNeedsPause(false);
 			this._updateGameplayStartState();
 		}
