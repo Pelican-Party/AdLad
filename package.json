@@ -3,6 +3,7 @@
 	"version": "0.0.6",
 	"description": "Ad sdks management for web games made easy.",
 	"main": "mod.js",
+	"types": "dist/AdLad.d.ts",
 	"type": "module",
 	"repository": {
 		"type": "git",
