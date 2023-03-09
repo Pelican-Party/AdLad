@@ -212,6 +212,9 @@ Deno.test({
 			args: [false],
 		});
 		assertEquals(adLad.needsPause, false);
+
+		setNeedsPause(false);
+		assertSpyCalls(needsPauseSpy, 2);
 	},
 });
 
