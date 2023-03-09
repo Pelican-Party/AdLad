@@ -14,9 +14,6 @@ Deno.test({
 		const initializeSpy = spy(plugin, "initialize");
 		new AdLad([plugin]);
 		assertSpyCalls(initializeSpy, 1);
-		assertSpyCall(initializeSpy, 0, {
-			args: [],
-		});
 	},
 });
 

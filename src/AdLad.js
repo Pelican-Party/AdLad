@@ -14,6 +14,12 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  */
 
 /**
+ * @typedef AdLadPluginInitializeContext
+ * @property {(needsPause: boolean) => void} setNeedsPause Update the `needsPause` state of AdLad.
+ * Requires {@linkcode AdLadPlugin.manualNeedsPause} to be true and will throw otherwise.
+ */
+
+/**
  * @typedef AdLadPlugin
  * @property {string} name The name of your plugin, may only contain lowercase `a-z`, `_` or `-`. May not start or end with `_` or `-`.
  * @property {() => boolean} [shouldBeActive] While it is recommended to users to manually choose a plugin either
@@ -21,7 +27,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * plugin developers can tell AdLad whether they wish their plugin to be the active one.
  * You can lock at the domain for instance or whether the page is currently embedded on a game portal.
  * When more than one plugin returns true, the last plugin that was provided will be picked.
- * @property {() => void | Promise<void>} [initialize] Gets called the moment AdLad is instantiated and your
+ * @property {(context: AdLadPluginInitializeContext) => void | Promise<void>} [initialize] Gets called the moment AdLad is instantiated and your
  * plugin is chosen as the active plogin. If you return a promise, no other hooks will be called until the hook resolves.
  * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd] Hook that gets called when the user
  * wants to show a full screen non rewarded ad. This should return a promise that resolves once the ad is no longer visible.
@@ -42,7 +48,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * This will never be called twice in a row without `loadStop` being called first, except when the game loads for the first time.
  * @property {() => void | Promise<void>} [loadStop] Hook that gets called when loading has stopped.
  * This will never be called twice in a row without `loadStart` being called first.
- * @property {boolean} [manualNeedsPause] TODO: This is not implemented yet. Set to `true` (default is `false`) when you manually want to
+ * @property {boolean} [manualNeedsPause] Set to `true` (default is `false`) when you manually want to
  * let AdLad know the value `needsPause` and its events. By default `needsPause` is automatically managed and
  * set to `true` during full screen ads. But when you enable manual management you have more control over this.
  * For example, you could make sure `needsPause` never becomes `true` when no ad is shown, even though `showFullScreenAd` was called.
@@ -191,14 +197,30 @@ export class AdLad {
 			foundPlugin = true;
 		}
 
+		/** @private */
+		this._manualNeedsPause = false;
+		if (this._plugin && this._plugin.manualNeedsPause) {
+			this._manualNeedsPause = true;
+		}
+
 		/** @type {Promise<void> | void} */
 		let pluginInitializeResult;
 		if (this._plugin && this._plugin.initialize) {
+			const manualNeedsPause = this._plugin.manualNeedsPause;
 			const certainInitialize = this._plugin.initialize;
 			const name = this._plugin.name;
 			pluginInitializeResult = (async () => {
 				try {
-					await certainInitialize();
+					await certainInitialize({
+						setNeedsPause: (needsPause) => {
+							if (!manualNeedsPause) {
+								throw new Error(
+									"Plugin is not allowed to modify needsPause because 'manualNeedsPause' is not set.",
+								);
+							}
+							this._setNeedsPause(needsPause);
+						},
+					});
 				} catch (e) {
 					console.warn(`The "${name}" AdLad plugin failed to initialize`, e);
 				}
@@ -350,7 +372,7 @@ export class AdLad {
 			}
 			let pluginResult;
 			if (this.pluginInitializePromise) await this.pluginInitializePromise;
-			this._setNeedsPause(true);
+			if (!this._manualNeedsPause) this._setNeedsPause(true);
 			try {
 				pluginResult = await showFn();
 			} catch (e) {
@@ -368,7 +390,7 @@ export class AdLad {
 			return sanitizeFullScreenAdResult(pluginResult);
 		} finally {
 			this._isShowingAd = false;
-			this._setNeedsPause(false);
+			if (!this._manualNeedsPause) this._setNeedsPause(false);
 			this._updateGameplayStartState();
 		}
 	}
