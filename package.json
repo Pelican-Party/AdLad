@@ -1,6 +1,6 @@
 {
 	"name": "@adlad/adlad",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"description": "Ad sdks management for web games made easy.",
 	"main": "mod.js",
 	"repository": {
