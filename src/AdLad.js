@@ -2,7 +2,7 @@ import { BooleanState } from "./BooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
 import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
-/** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "unknown"} AdErrorReason */
+/** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "time-constraint" | "user-dismissed" | "unknown"} AdErrorReason */
 /**
  * @typedef ShowFullScreenAdResult
  * @property {boolean?} didShowAd - When this is `true` when, ad was shown. In this case `errorReason` will be `null`.

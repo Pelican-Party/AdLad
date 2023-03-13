@@ -18,9 +18,11 @@ export function sanitizeFullScreenAdResult(pluginResult) {
 		} else {
 			/** @type {import("./AdLad.js").AdErrorReason[]} */
 			const validReasons = [
-				"adblocker",
 				"not-supported",
 				"no-ad-available",
+				"adblocker",
+				"time-constraint",
+				"user-dismissed",
 				"unknown",
 			];
 			const reasonIndex = validReasons.indexOf(/** @type {any} */ (pluginResult.errorReason));

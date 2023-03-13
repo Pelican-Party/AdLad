@@ -38,6 +38,18 @@ Deno.test({
 			},
 			{
 				didShowAd: false,
+				errorReason: "adblocker",
+			},
+			{
+				didShowAd: false,
+				errorReason: "time-constraint",
+			},
+			{
+				didShowAd: false,
+				errorReason: "user-dismissed",
+			},
+			{
+				didShowAd: false,
 				errorReason: "unknown",
 			},
 			{
@@ -105,6 +117,22 @@ Deno.test({
 			{
 				didShowAd: true,
 				errorReason: "no-ad-available",
+			},
+			{
+				didShowAd: true,
+				errorReason: "adblocker",
+			},
+			{
+				didShowAd: true,
+				errorReason: "time-constraint",
+			},
+			{
+				didShowAd: true,
+				errorReason: "user-dismissed",
+			},
+			{
+				didShowAd: true,
+				errorReason: "unknown",
 			},
 		], {
 			didShowAd: true,
