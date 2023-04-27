@@ -1,7 +1,6 @@
-import { assertEquals, assertRejects } from "$std/testing/asserts.ts";
-import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { assertPromiseResolved, initializingPluginTest, waitForMicrotasks } from "../shared.js";
+import { waitForMicrotasks } from "../shared.js";
 
 Deno.test({
 	name: "canShowFullScreenAd when no plugin is active",
