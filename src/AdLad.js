@@ -218,6 +218,13 @@ export class AdLad {
 			this._manualNeedsMute = true;
 		}
 
+		/**
+		 * Becomes true once the initialize hook from the plugin resolves.
+		 * This also becomes true when the plugin failed to initialize.
+		 * @private
+		 */
+		this._pluginInitialized = false;
+
 		/** @type {Promise<void> | void} */
 		let pluginInitializeResult;
 		if (this._plugin && this._plugin.initialize) {
@@ -248,6 +255,7 @@ export class AdLad {
 				} catch (e) {
 					console.warn(`The "${name}" AdLad plugin failed to initialize`, e);
 				}
+				this._pluginInitialized = true;
 			})();
 		}
 
@@ -465,12 +473,34 @@ export class AdLad {
 	}
 
 	/**
+	 * This is true when a plugin has initialized and supports the {@linkcode showFullScreenAd} method.
+	 * When this is true that is not a guarantee that {@linkcode showFullScreenAd} will always show an ad.
+	 * It might still fail due to adblockers, time constraints, unknown reasons, etc.
+	 */
+	get canShowFullScreenAd() {
+		if (!this._pluginInitialized) return false;
+		if (!this._plugin) return false;
+		return Boolean(this._plugin.showFullScreenAd);
+	}
+
+	/**
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showFullScreenAd() {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showFullScreenAd;
 		return await this._showPluginFullScreenAd(showFn);
+	}
+
+	/**
+	 * This is true when a plugin has initialized and supports the {@linkcode showRewardedAd} method.
+	 * When this is true that is not a guarantee that {@linkcode showRewardedAd} will always show an ad.
+	 * It might still fail due to adblockers, time constraints, unknown reasons, etc.
+	 */
+	get canShowRewardedAd() {
+		if (!this._pluginInitialized) return false;
+		if (!this._plugin) return false;
+		return Boolean(this._plugin.showRewardedAd);
 	}
 
 	/**
