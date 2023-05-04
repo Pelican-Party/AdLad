@@ -130,7 +130,7 @@ export class AdLad {
 	 * there are some configurations available in order to control or completely disable this functionality.
 	 *
 	 * Using the query string to select plugins is the recommended method.
-	 * Doing it like this will allow you to provide your domain in cluding the query string to different
+	 * Doing it like this will allow you to provide your domain including the query string to different
 	 * game portals, which is a much more robust way than trying to figure out where your game is being embedded.
 	 * The domains from game portals may change at any time, in which case you will have to update its plugin.
 	 * The query string, on the other hand, can be configured by you and so will likely never change.
@@ -185,19 +185,21 @@ export class AdLad {
 		if (allowQueryStringPluginSelection && window.location) {
 			const url = new URL(window.location.href);
 			const queryPlugin = url.searchParams.get(pluginSelectQueryStringKey);
-			const plugin = plugins.find((p) => p.name == queryPlugin) || null;
-			if (!plugin) {
-				if (invalidQueryStringPluginBehaviour == "error") {
-					throw new Error(`The plugin "${queryPlugin}" does not exist.`);
-				} else if (invalidQueryStringPluginBehaviour == "fallback") {
-					//todo
-				} else if (invalidQueryStringPluginBehaviour == "none") {
-					foundPlugin = true;
+			if (queryPlugin) {
+				const plugin = plugins.find((p) => p.name == queryPlugin) || null;
+				if (!plugin) {
+					if (invalidQueryStringPluginBehaviour == "error") {
+						throw new Error(`The plugin "${queryPlugin}" does not exist.`);
+					} else if (invalidQueryStringPluginBehaviour == "fallback") {
+						//todo
+					} else if (invalidQueryStringPluginBehaviour == "none") {
+						foundPlugin = true;
+					}
 				}
-			}
-			if (plugin) {
-				foundPlugin = true;
-				this._plugin = plugin;
+				if (plugin) {
+					foundPlugin = true;
+					this._plugin = plugin;
+				}
 			}
 		}
 		if (!foundPlugin && forcedPlugin != null) {
