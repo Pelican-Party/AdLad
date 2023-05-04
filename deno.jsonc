@@ -22,8 +22,7 @@
 		"options": {
 			"indentWidth": 4,
 			"useTabs": true,
-			"lineWidth": 120,
-			"proseWrap": "preserve"
+			"lineWidth": 120
 		}
 	},
 	"lint": {
