@@ -34,7 +34,10 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * You can lock at the domain for instance or whether the page is currently embedded on a game portal.
  * When more than one plugin returns true, the last plugin that was provided will be picked.
  * @property {(context: AdLadPluginInitializeContext) => void | Promise<void>} [initialize] Gets called the moment AdLad is instantiated and your
- * plugin is chosen as the active plogin. If you return a promise, no other hooks will be called until the hook resolves.
+ * plugin is chosen as the active plugin. If you return a promise, no other hooks will be called until the hook resolves.
+ * You may throw an error or reject the promise, plugin hooks will still be called in that case.
+ * But it's important to not leave the promise hanging indefinitely,
+ * because this will cause calls by the user to stay hanging as well, potentially locking up the game forever.
  * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd] Hook that gets called when the user
  * wants to show a full screen non rewarded ad. This should return a promise that resolves once the ad is no longer visible.
  * The return result should contain info about whether an ad was shown.
