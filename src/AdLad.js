@@ -15,6 +15,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
 /**
  * @typedef AdLadPluginInitializeContext
+ * @property {boolean} useTestAds When this is true, the plugin should show test ads when supported by the ad provider.
  * @property {(needsPause: boolean) => void} setNeedsPause Update the `needsPause` state of AdLad.
  * You can call this as often as you like, if you call this with the same `needsPause` state twice in a row,
  * an event is only fired once.
@@ -89,6 +90,8 @@ const invalidQueryStringBehaviourTypes = [
  * If the passed value is not an existing plugin, an error will be thrown.
  * An exception to this is the value `"none"`, which will cause no plugin to be selected.
  * `"none"` can still be overridden by the query string.
+ * @property {boolean} [useTestAds] Set to true when in development, when plugins support test ads,
+ * they will use those instead of production ads.
  * @property {boolean} [allowQueryStringPluginSelection] When set to true (which is the default)
  * allows changing the selected plugin using the `?adlad=` query string.
  * You can change the key of the query string parameter using `pluginSelectQueryStringKey`.
@@ -145,6 +148,7 @@ export class AdLad {
 		let pluginSelectQueryStringKey = "adlad";
 		/** @type {AdLadInvalidQueryStringBehaviour} */
 		let invalidQueryStringPluginBehaviour = "fallback";
+		let useTestAds = false;
 		if (options) {
 			if (Array.isArray(options)) {
 				plugins = options;
@@ -165,6 +169,7 @@ export class AdLad {
 				) {
 					invalidQueryStringPluginBehaviour = options.invalidQueryStringPluginBehaviour;
 				}
+				if (options.useTestAds) useTestAds = true;
 			}
 		}
 
@@ -238,6 +243,7 @@ export class AdLad {
 			pluginInitializeResult = (async () => {
 				try {
 					await certainInitialize({
+						useTestAds,
 						setNeedsPause: (needsPause) => {
 							if (!manualNeedsPause) {
 								throw new Error(

@@ -155,3 +155,36 @@ Deno.test({
 		}
 	},
 });
+
+Deno.test({
+	name: "useTestAds option is propagated to InitializeContext",
+	fn() {
+		/** @type {boolean[]} */
+		const initializeCalls = [];
+		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
+		const plugin = {
+			name: "plugin",
+			initialize(ctx) {
+				initializeCalls.push(ctx.useTestAds);
+			},
+		};
+
+		new AdLad([plugin]);
+
+		new AdLad({
+			plugins: [plugin],
+		});
+
+		new AdLad({
+			useTestAds: false,
+			plugins: [plugin],
+		});
+
+		new AdLad({
+			useTestAds: true,
+			plugins: [plugin],
+		});
+
+		assertEquals(initializeCalls, [false, false, false, true]);
+	},
+});
