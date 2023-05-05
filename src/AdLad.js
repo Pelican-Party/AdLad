@@ -271,7 +271,7 @@ export class AdLad {
 		}
 
 		/** @private */
-		this.pluginInitializePromise = pluginInitializeResult || null;
+		this._pluginInitializePromise = pluginInitializeResult || null;
 
 		/** @private */
 		this._isShowingAd = false;
@@ -280,7 +280,7 @@ export class AdLad {
 		this._loadingState = new BooleanState({
 			defaultState: true,
 			defaultPluginState: false,
-			pluginInitializePromise: this.pluginInitializePromise,
+			pluginInitializePromise: this._pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.loadStart) {
 					return this._plugin.loadStart();
@@ -295,7 +295,7 @@ export class AdLad {
 
 		/** @private */
 		this._gameplayStartState = new BooleanState({
-			pluginInitializePromise: this.pluginInitializePromise,
+			pluginInitializePromise: this._pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.gameplayStart) {
 					return this._plugin.gameplayStart();
@@ -461,7 +461,7 @@ export class AdLad {
 				};
 			}
 			let pluginResult;
-			if (this.pluginInitializePromise) await this.pluginInitializePromise;
+			if (this._pluginInitializePromise) await this._pluginInitializePromise;
 			if (!this._manualNeedsPause) this._setNeedsPause(true);
 			if (!this._manualNeedsMute) this._setNeedsMute(true);
 			try {
