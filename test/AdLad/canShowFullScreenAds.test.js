@@ -1,4 +1,5 @@
 import { assertEquals } from "$std/testing/asserts.ts";
+import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
 import { waitForMicrotasks } from "../shared.js";
 
@@ -29,7 +30,13 @@ function initializePromisePlugin(pluginOptions) {
 	/** @type {import("../../src/AdLad.js").AdLadPlugin} */
 	const plugin = {
 		name: "plugin",
-		initialize() {
+		initialize(ctx) {
+			if (pluginOptions?.initialize) {
+				const result = pluginOptions.initialize(ctx);
+				if (result instanceof Promise) {
+					throw new Error("async initialize functions are not supported in this test");
+				}
+			}
 			return new Promise((r) => {
 				resolvePromiseFn = r;
 			});
@@ -44,6 +51,12 @@ function initializePromisePlugin(pluginOptions) {
 			await waitForMicrotasks();
 		},
 	};
+}
+
+function createOnChangeSpy() {
+	/** @type {(onChange: boolean) => void} */
+	const spyFn = () => {};
+	return spy(spyFn);
 }
 
 Deno.test({
@@ -61,9 +74,16 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowFullScreenAd, false);
 
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowFullScreenAdChange(changeSpy);
+
 		await resolvePromise();
 
 		assertEquals(adLad.canShowFullScreenAd, true);
+		assertSpyCalls(changeSpy, 1);
+		assertSpyCall(changeSpy, 0, {
+			args: [true],
+		});
 	},
 });
 
@@ -82,9 +102,16 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowRewardedAd, false);
 
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowRewardedAdChange(changeSpy);
+
 		await resolvePromise();
 
 		assertEquals(adLad.canShowRewardedAd, true);
+		assertSpyCalls(changeSpy, 1);
+		assertSpyCall(changeSpy, 0, {
+			args: [true],
+		});
 	},
 });
 
@@ -96,9 +123,13 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowFullScreenAd, false);
 
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowFullScreenAdChange(changeSpy);
+
 		await resolvePromise();
 
 		assertEquals(adLad.canShowFullScreenAd, false);
+		assertSpyCalls(changeSpy, 0);
 	},
 });
 
@@ -110,8 +141,158 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowRewardedAd, false);
 
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowRewardedAdChange(changeSpy);
+
 		await resolvePromise();
 
 		assertEquals(adLad.canShowRewardedAd, false);
+		assertSpyCalls(changeSpy, 0);
+	},
+});
+
+Deno.test({
+	name: "plugin that sets canShowFullScreenAd",
+	async fn() {
+		/** @type {(value: boolean) => void} */
+		let setFunction = () => {};
+		const { plugin, resolvePromise } = initializePromisePlugin({
+			initialize(ctx) {
+				ctx.setCanShowFullScreenAd(false);
+				setFunction = ctx.setCanShowFullScreenAd;
+			},
+			async showFullScreenAd() {
+				return {
+					didShowAd: false,
+					errorReason: "unknown",
+				};
+			},
+		});
+
+		const adLad = new AdLad([plugin]);
+		assertEquals(adLad.canShowFullScreenAd, false);
+
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowFullScreenAdChange(changeSpy);
+
+		await resolvePromise();
+
+		assertEquals(adLad.canShowFullScreenAd, false);
+		assertSpyCalls(changeSpy, 0);
+
+		setFunction(true);
+		assertEquals(adLad.canShowFullScreenAd, true);
+		assertSpyCalls(changeSpy, 1);
+
+		setFunction(true);
+		assertEquals(adLad.canShowFullScreenAd, true);
+		assertSpyCalls(changeSpy, 1);
+
+		setFunction(false);
+		assertEquals(adLad.canShowFullScreenAd, false);
+		assertSpyCalls(changeSpy, 2);
+
+		assertSpyCall(changeSpy, 0, {
+			args: [true],
+		});
+		assertSpyCall(changeSpy, 1, {
+			args: [false],
+		});
+	},
+});
+
+Deno.test({
+	name: "plugin that sets canShowRewardedAd",
+	async fn() {
+		/** @type {(value: boolean) => void} */
+		let setFunction = () => {};
+		const { plugin, resolvePromise } = initializePromisePlugin({
+			initialize(ctx) {
+				ctx.setCanShowRewardedAd(false);
+				setFunction = ctx.setCanShowRewardedAd;
+			},
+			async showRewardedAd() {
+				return {
+					didShowAd: false,
+					errorReason: "unknown",
+				};
+			},
+		});
+
+		const adLad = new AdLad([plugin]);
+		assertEquals(adLad.canShowRewardedAd, false);
+
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowRewardedAdChange(changeSpy);
+
+		await resolvePromise();
+
+		assertEquals(adLad.canShowRewardedAd, false);
+		assertSpyCalls(changeSpy, 0);
+
+		setFunction(true);
+		assertEquals(adLad.canShowRewardedAd, true);
+		assertSpyCalls(changeSpy, 1);
+
+		setFunction(true);
+		assertEquals(adLad.canShowRewardedAd, true);
+		assertSpyCalls(changeSpy, 1);
+
+		setFunction(false);
+		assertEquals(adLad.canShowRewardedAd, false);
+		assertSpyCalls(changeSpy, 2);
+
+		assertSpyCall(changeSpy, 0, {
+			args: [true],
+		});
+		assertSpyCall(changeSpy, 1, {
+			args: [false],
+		});
+	},
+});
+
+Deno.test({
+	name: "plugin with showFullScreenAd implemented but no initialize hook",
+	fn() {
+		const adLad = new AdLad([
+			{
+				name: "plugin",
+				async showFullScreenAd() {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+			},
+		]);
+
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowFullScreenAdChange(changeSpy);
+
+		assertEquals(adLad.canShowFullScreenAd, true);
+		assertSpyCalls(changeSpy, 0);
+	},
+});
+
+Deno.test({
+	name: "plugin with showRewardedAd implemented but no initialize hook",
+	fn() {
+		const adLad = new AdLad([
+			{
+				name: "plugin",
+				async showRewardedAd() {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+			},
+		]);
+
+		const changeSpy = createOnChangeSpy();
+		adLad.onCanShowRewardedAdChange(changeSpy);
+
+		assertEquals(adLad.canShowRewardedAd, true);
+		assertSpyCalls(changeSpy, 0);
 	},
 });

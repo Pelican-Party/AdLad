@@ -17,14 +17,26 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 /**
  * @typedef AdLadPluginInitializeContext
  * @property {boolean} useTestAds When this is true, the plugin should show test ads when supported by the ad provider.
+ *
  * @property {(needsPause: boolean) => void} setNeedsPause Update the `needsPause` state of AdLad.
- * You can call this as often as you like, if you call this with the same `needsPause` state twice in a row,
- * an event is only fired once.
+ * You can call this as often as you like, if you call this with the same `needsPause` state twice in a row, an event is only fired once.
  * Requires {@linkcode AdLadPlugin.manualNeedsPause} to be true and will throw otherwise.
+ *
  * @property {(needsMute: boolean) => void} setNeedsMute Update the `needsMute` state of AdLad.
- * You can call this as often as you like, if you call this with the same `needsMute` state twice in a row,
- * an event is only fired once.
+ * You can call this as often as you like, if you call this with the same `needsMute` state twice in a row, an event is only fired once.
  * Requires {@linkcode AdLadPlugin.manualNeedsMute} to be true and will throw otherwise.
+ *
+ * @property {(canShowFullScreenAd: boolean) => void} setCanShowFullScreenAd Update the `canShowFullScreenAd` state of AdLad.
+ * You can call this as often as you like, if you call this with the same `canShowFullScreenAd` state twice in a row, an event is only fired once.
+ * Requires {@linkcode AdLadPlugin.showFullScreenAd} to be implemented, otherwise this has no effect.
+ * By default `canShowFullScreenAd` is true when `showFullScreenAd` is implemented,
+ * so if you want this to be false from the start, make sure to call this within your initialize hook.
+ *
+ * @property {(canShowRewardedAd: boolean) => void} setCanShowRewardedAd Update the `canShowRewardedAd` state of AdLad.
+ * You can call this as often as you like, if you call this with the same `canShowRewardedAd` state twice in a row, an event is only fired once.
+ * Requires {@linkcode AdLadPlugin.showRewardedAd} to be implemented, otherwise this has no effect.
+ * By default `canShowRewardedAd` is true when `showRewardedAd` is implemented,
+ * so if you want this to be false from the start, make sure to call this within your initialize hook.
  */
 
 /**
@@ -40,6 +52,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * You may throw an error or reject the promise, plugin hooks will still be called in that case.
  * But it's important to not leave the promise hanging indefinitely,
  * because this will cause calls by the user to stay hanging as well, potentially locking up the game forever.
+ *
  * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd] Hook that gets called when the user
  * wants to show a full screen non rewarded ad. This should return a promise that resolves once the ad is no longer visible.
  * The return result should contain info about whether an ad was shown.
@@ -50,6 +63,7 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * The return result should contain info about whether an ad was shown.
  * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
  * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
+ *
  * @property {() => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
  * This will never be called twice in a row without `gameplayStop` being called first, except when the game starts for the first time.
  * @property {() => void | Promise<void>} [gameplayStop] Hook that gets called when gameplay has stopped.
@@ -59,12 +73,13 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * This will never be called twice in a row without `loadStop` being called first, except when the game loads for the first time.
  * @property {() => void | Promise<void>} [loadStop] Hook that gets called when loading has stopped.
  * This will never be called twice in a row without `loadStart` being called first.
+ *
  * @property {boolean} [manualNeedsPause] Set to `true` (default is `false`) when you manually want to
- * let AdLad know about the value `needsPause` and its events. By default `needsPause` is automatically managed and
+ * let AdLad know about the `needsPause` value and its events. By default `needsPause` is automatically managed and
  * set to `true` during full screen ads. But when you enable manual management you have more control over this.
  * For example, you could make sure `needsPause` never becomes `true` when no ad is shown, even though `showFullScreenAd` was called.
  * @property {boolean} [manualNeedsMute] Set to `true` (default is `false`) when you manually want to
- * let AdLad know about the value `needsMute` and its events. By default `needsMute` is automatically managed and
+ * let AdLad know about the `needsMute` value and its events. By default `needsMute` is automatically managed and
  * set to `true` during full screen ads. But when you enable manual management you have more control over this.
  * For example, you could make sure `needsMute` becomes true once the ad actually loads, instead of the moment it is requested.
  */
@@ -229,46 +244,76 @@ export class AdLad {
 			this._manualNeedsMute = true;
 		}
 
-		/**
-		 * Becomes true once the initialize hook from the plugin resolves.
-		 * This also becomes true when the plugin failed to initialize.
-		 * @private
-		 */
-		this._pluginInitialized = false;
+		/** @private */
+		this._needsPauseState = new PluginBooleanState(false);
+
+		/** @private */
+		this._needsMuteState = new PluginBooleanState(false);
+
+		/** @private */
+		this._canShowFullScreenAdState = new PluginBooleanState(false);
+		/** @private */
+		this._canShowRewardedAdState = new PluginBooleanState(false);
 
 		/** @type {Promise<void> | void} */
 		let pluginInitializeResult;
-		if (this._plugin && this._plugin.initialize) {
-			const manualNeedsPause = this._plugin.manualNeedsPause;
-			const manualNeedsMute = this._plugin.manualNeedsMute;
-			const certainInitialize = this._plugin.initialize;
-			const name = this._plugin.name;
-			pluginInitializeResult = (async () => {
-				try {
-					await certainInitialize({
-						useTestAds,
-						setNeedsPause: (needsPause) => {
-							if (!manualNeedsPause) {
-								throw new Error(
-									"Plugin is not allowed to modify needsPause because 'manualNeedsPause' is not set.",
-								);
-							}
-							this._needsPauseState.setValue(needsPause);
-						},
-						setNeedsMute: (needsMute) => {
-							if (!manualNeedsMute) {
-								throw new Error(
-									"Plugin is not allowed to modify needsMute because 'manualNeedsMute' is not set.",
-								);
-							}
-							this._needsMuteState.setValue(needsMute);
-						},
-					});
-				} catch (e) {
-					console.warn(`The "${name}" AdLad plugin failed to initialize`, e);
+		if (this._plugin) {
+			if (this._plugin.initialize) {
+				const certainInitialize = this._plugin.initialize;
+				const manualNeedsPause = this._plugin.manualNeedsPause;
+				const manualNeedsMute = this._plugin.manualNeedsMute;
+				const name = this._plugin.name;
+				let canShowFullScreenAdAdjusted = false;
+				let canShowRewardedAdAdjusted = false;
+				const certainShowFullScreenAd = this._plugin.showFullScreenAd;
+				const certainShowRewardedAd = this._plugin.showRewardedAd;
+				pluginInitializeResult = (async () => {
+					try {
+						await certainInitialize({
+							useTestAds,
+							setNeedsPause: (needsPause) => {
+								if (!manualNeedsPause) {
+									throw new Error(
+										"Plugin is not allowed to modify needsPause because 'manualNeedsPause' is not set.",
+									);
+								}
+								this._needsPauseState.setValue(needsPause);
+							},
+							setNeedsMute: (needsMute) => {
+								if (!manualNeedsMute) {
+									throw new Error(
+										"Plugin is not allowed to modify needsMute because 'manualNeedsMute' is not set.",
+									);
+								}
+								this._needsMuteState.setValue(needsMute);
+							},
+							setCanShowFullScreenAd: (canShowFullScreenAd) => {
+								canShowFullScreenAdAdjusted = true;
+								this._canShowFullScreenAdState.setValue(canShowFullScreenAd);
+							},
+							setCanShowRewardedAd: (canShowRewardedAd) => {
+								canShowRewardedAdAdjusted = true;
+								this._canShowRewardedAdState.setValue(canShowRewardedAd);
+							},
+						});
+					} catch (e) {
+						console.warn(`The "${name}" AdLad plugin failed to initialize`, e);
+					}
+					if (!canShowFullScreenAdAdjusted && certainShowFullScreenAd) {
+						this._canShowFullScreenAdState.setValue(true);
+					}
+					if (!canShowRewardedAdAdjusted && certainShowRewardedAd) {
+						this._canShowRewardedAdState.setValue(true);
+					}
+				})();
+			} else {
+				if (this._plugin.showFullScreenAd) {
+					this._canShowFullScreenAdState.setValue(true);
 				}
-				this._pluginInitialized = true;
-			})();
+				if (this._plugin.showRewardedAd) {
+					this._canShowRewardedAdState.setValue(true);
+				}
+			}
 		}
 
 		/** @private */
@@ -310,12 +355,6 @@ export class AdLad {
 		});
 		/** @private */
 		this._lastGameplayStartCall = false;
-
-		/** @private */
-		this._needsPauseState = new PluginBooleanState(false);
-
-		/** @private */
-		this._needsMuteState = new PluginBooleanState(false);
 	}
 
 	/**
@@ -385,7 +424,7 @@ export class AdLad {
 	}
 
 	/**
-	 * Use this to unregister callbacks registered with {@linkcode onNeedsPauseChange}
+	 * Use this to unregister callbacks registered with {@linkcode onNeedsPauseChange}.
 	 * @param {OnNeedsPauseChangeCallback} cb
 	 */
 	removeOnNeedsPauseChange(cb) {
@@ -402,7 +441,7 @@ export class AdLad {
 	}
 
 	/**
-	 * Use this to unregister callbacks registered with {@linkcode onNeedsMuteChange}
+	 * Use this to unregister callbacks registered with {@linkcode onNeedsMuteChange}.
 	 * @param {OnNeedsMuteChangeCallback} cb
 	 */
 	removeOnNeedsMuteChange(cb) {
@@ -466,13 +505,29 @@ export class AdLad {
 
 	/**
 	 * This is true when a plugin has initialized and supports the {@linkcode showFullScreenAd} method.
-	 * When this is true that is not a guarantee that {@linkcode showFullScreenAd} will always show an ad.
+	 * When this is true, that is not a guarantee that {@linkcode showFullScreenAd} will always show an ad.
 	 * It might still fail due to adblockers, time constraints, unknown reasons, etc.
 	 */
 	get canShowFullScreenAd() {
-		if (!this._pluginInitialized) return false;
-		if (!this._plugin) return false;
-		return Boolean(this._plugin.showFullScreenAd);
+		return this._canShowFullScreenAdState.value;
+	}
+
+	/** @typedef {(canShowFullScreenAd: boolean) => void} OnCanShowFullScreenAdChangeCallback */
+
+	/**
+	 * Registers a callback that is fired when {@linkcode canShowFullScreenAd} changes.
+	 * @param {OnCanShowFullScreenAdChangeCallback} cb
+	 */
+	onCanShowFullScreenAdChange(cb) {
+		this._canShowFullScreenAdState.onChange(cb);
+	}
+
+	/**
+	 * Use this to unregister callbacks registered with {@linkcode onCanShowFullScreenAdChange}.
+	 * @param {OnCanShowFullScreenAdChangeCallback} cb
+	 */
+	removeOnCanShowFullScreenAdChange(cb) {
+		this._canShowFullScreenAdState.removeOnChange(cb);
 	}
 
 	/**
@@ -487,13 +542,29 @@ export class AdLad {
 
 	/**
 	 * This is true when a plugin has initialized and supports the {@linkcode showRewardedAd} method.
-	 * When this is true that is not a guarantee that {@linkcode showRewardedAd} will always show an ad.
+	 * When this is true, that is not a guarantee that {@linkcode showRewardedAd} will always show an ad.
 	 * It might still fail due to adblockers, time constraints, unknown reasons, etc.
 	 */
 	get canShowRewardedAd() {
-		if (!this._pluginInitialized) return false;
-		if (!this._plugin) return false;
-		return Boolean(this._plugin.showRewardedAd);
+		return this._canShowRewardedAdState.value;
+	}
+
+	/** @typedef {(canShowRewardedAd: boolean) => void} OnCanShowRewardedAdChangeCallback */
+
+	/**
+	 * Registers a callback that is fired when {@linkcode canShowRewardedAd} changes.
+	 * @param {OnCanShowRewardedAdChangeCallback} cb
+	 */
+	onCanShowRewardedAdChange(cb) {
+		this._canShowRewardedAdState.onChange(cb);
+	}
+
+	/**
+	 * Use this to unregister callbacks registered with {@linkcode onCanShowRewardedAdChange}.
+	 * @param {OnCanShowRewardedAdChangeCallback} cb
+	 */
+	removeOnCanShowRewardedAdChange(cb) {
+		this._canShowRewardedAdState.removeOnChange(cb);
 	}
 
 	/**
