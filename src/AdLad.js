@@ -433,6 +433,7 @@ export class AdLad {
 	}
 
 	/**
+	 * Helper function for showing full screen and rewarded ads.
 	 * @private
 	 * @param {(() => Promise<ShowFullScreenAdResult>) | undefined} showFn
 	 * @returns {Promise<ShowFullScreenAdResult>}
@@ -498,6 +499,7 @@ export class AdLad {
 	}
 
 	/**
+	 * Waits for the plugin to initialize and shows a full screen ad once it's ready.
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showFullScreenAd() {
@@ -518,6 +520,7 @@ export class AdLad {
 	}
 
 	/**
+	 * Waits for the plugin to initialize and shows a rewarded ad once it's ready.
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showRewardedAd() {
