@@ -73,7 +73,7 @@ You can use `adLad.removeOnNeedsPauseChange` and `adLad.removeOnNeedsMuteChange`
 Once you have experimented enough, you can bundle AdLad using a build tool of choice. AdLad is available as
 [an npm package](https://www.npmjs.com/package/@adlad/adlad) and on [deno.land/x](https://deno.land/x/adlad@v0.1.0).
 
-For the full API reference, see [this page](removeOnNeedsPauseChange).
+For the full API reference, see [this page](https://doc.deno.land/https://cdn.jsdelivr.net/npm/@adlad/adlad/dist/AdLad.d.ts).
 
 ## Plugins
 
