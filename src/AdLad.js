@@ -1,4 +1,4 @@
-import { BooleanState } from "./BooleanState.js";
+import { DeveloperBooleanState } from "./DeveloperBooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
 import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
@@ -277,7 +277,7 @@ export class AdLad {
 		this._isShowingAd = false;
 
 		/** @private */
-		this._loadingState = new BooleanState({
+		this._loadingState = new DeveloperBooleanState({
 			defaultState: true,
 			defaultPluginState: false,
 			pluginInitializePromise: this._pluginInitializePromise,
@@ -294,7 +294,7 @@ export class AdLad {
 		});
 
 		/** @private */
-		this._gameplayStartState = new BooleanState({
+		this._gameplayStartState = new DeveloperBooleanState({
 			pluginInitializePromise: this._pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.gameplayStart) {

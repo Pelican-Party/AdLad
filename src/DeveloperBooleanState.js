@@ -1,9 +1,9 @@
 /**
- * This class calls from the developer like gameplayStart() and gameplayStop().
+ * This class handles calls from the developer like gameplayStart() and gameplayStop().
  * And passes these along to plugins while making sure they are not fired more than once.
  * If the plugins return a promise, this also ensures no call is being made while a returned promise is pending.
  */
-export class BooleanState {
+export class DeveloperBooleanState {
 	/**
 	 * @param {Object} options
 	 * @param {boolean} [options.defaultState] The default state that the AdLad api uses. For example,

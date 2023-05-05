@@ -1,6 +1,6 @@
 import { assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { assertEquals } from "$std/testing/asserts.ts";
-import { BooleanState, filterStateQueue } from "../src/BooleanState.js";
+import { DeveloperBooleanState, filterStateQueue } from "../src/DeveloperBooleanState.js";
 import { assertPromiseResolved, waitForMicrotasks } from "./shared.js";
 
 /**
@@ -32,7 +32,7 @@ function booleanStateTest({
 		return promise;
 	});
 
-	const state = new BooleanState({
+	const state = new DeveloperBooleanState({
 		pluginInitializePromise,
 		defaultState,
 		defaultPluginState,
