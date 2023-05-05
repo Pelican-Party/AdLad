@@ -2,7 +2,7 @@ import { BooleanState } from "./BooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
 import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
-/** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "time-constraint" | "user-dismissed" | "unknown"} AdErrorReason */
+/** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "time-constraint" | "user-dismissed" | "already-playing" | "unknown"} AdErrorReason */
 /**
  * @typedef ShowFullScreenAdResult
  * @property {boolean?} didShowAd - When this is `true` when, ad was shown. In this case `errorReason` will be `null`.
@@ -439,7 +439,10 @@ export class AdLad {
 	 */
 	async _showPluginFullScreenAd(showFn) {
 		if (this._isShowingAd) {
-			throw new Error("An ad is already playing");
+			return {
+				didShowAd: false,
+				errorReason: "already-playing",
+			};
 		}
 		this._isShowingAd = true;
 		await this._updateGameplayStartState();

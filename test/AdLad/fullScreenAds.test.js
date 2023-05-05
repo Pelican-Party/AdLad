@@ -112,38 +112,38 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Throws when called twice while plugin is still initializing",
+	name: "Results in an 'already-playing' error when called twice while plugin is still initializing",
 	async fn() {
 		const { plugin } = createSpyPlugin();
 		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
 
-		const promise = adLad.showFullScreenAd();
-		await assertRejects(
-			async () => {
-				await adLad.showFullScreenAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
-		await assertRejects(
-			async () => {
-				await adLad.showRewardedAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
+		const promise1 = adLad.showFullScreenAd();
+		const promise2 = adLad.showFullScreenAd();
+		const promise3 = adLad.showFullScreenAd();
+		await assertPromiseResolved(promise1, false);
+		await assertPromiseResolved(promise2, true);
+		await assertPromiseResolved(promise3, true);
 
 		await resolveInitialize();
-		await assertPromiseResolved(promise, true);
-		assertEquals(await promise, {
+		await assertPromiseResolved(promise1, true);
+
+		assertEquals(await promise1, {
 			didShowAd: true,
 			errorReason: null,
+		});
+		assertEquals(await promise2, {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
+		assertEquals(await promise3, {
+			didShowAd: false,
+			errorReason: "already-playing",
 		});
 	},
 });
 
 Deno.test({
-	name: "Throws when an ad is already playing",
+	name: "Results in an 'already-playing' error when an ad is already playing",
 	async fn() {
 		let resolveFullScreen = () => {};
 		let resolveRewarded = () => {};
@@ -173,22 +173,19 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		let showPromise;
 
-		// Check if it throws when showing a full screen ad
+		// Check if it results in 'already-playing' when showing a full screen ad
 		showPromise = adLad.showFullScreenAd();
-		await assertRejects(
-			async () => {
-				await adLad.showFullScreenAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
-		await assertRejects(
-			async () => {
-				await adLad.showRewardedAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
+		// We need to wait because the plugin hook is not called immediately.
+		await waitForMicrotasks();
+
+		assertEquals(await adLad.showFullScreenAd(), {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
+		assertEquals(await adLad.showRewardedAd(), {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
 		resolveFullScreen();
 		await showPromise;
 
@@ -196,6 +193,7 @@ Deno.test({
 		showPromise = adLad.showFullScreenAd();
 		// We need to wait because the plugin hook is not called immediately.
 		await waitForMicrotasks();
+
 		resolveFullScreen();
 		await showPromise;
 
@@ -204,23 +202,17 @@ Deno.test({
 		resolveRewarded();
 		await showPromise;
 
-		// Check if it throws when showing a rewarded ad
+		// Check if it results in 'already-playing' when showing a rewarded ad
 		showPromise = adLad.showRewardedAd();
 		await waitForMicrotasks();
-		await assertRejects(
-			async () => {
-				await adLad.showFullScreenAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
-		await assertRejects(
-			async () => {
-				await adLad.showRewardedAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
+		assertEquals(await adLad.showFullScreenAd(), {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
+		assertEquals(await adLad.showRewardedAd(), {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
 		resolveRewarded();
 		await showPromise;
 
@@ -238,7 +230,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Throws when already playing even though it's not implemented",
+	name: "Results in 'already-playing' when already playing even though it's not implemented",
 	async fn() {
 		let resolveFullScreen = () => {};
 		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
@@ -258,24 +250,18 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		let showPromise;
 
-		// Check if it throws when showing a full screen ad
+		// Check if it results in 'already-playing' when showing a full screen ad
 		showPromise = adLad.showFullScreenAd();
 		// We need to wait because the plugin hook is not called immediately.
 		await waitForMicrotasks();
-		await assertRejects(
-			async () => {
-				await adLad.showFullScreenAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
-		await assertRejects(
-			async () => {
-				await adLad.showRewardedAd();
-			},
-			Error,
-			"An ad is already playing",
-		);
+		assertEquals(await adLad.showFullScreenAd(), {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
+		assertEquals(await adLad.showRewardedAd(), {
+			didShowAd: false,
+			errorReason: "already-playing",
+		});
 		resolveFullScreen();
 		await showPromise;
 
