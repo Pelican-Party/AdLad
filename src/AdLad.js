@@ -1,4 +1,5 @@
 import { DeveloperBooleanState } from "./DeveloperBooleanState.js";
+import { PluginBooleanState } from "./PluginBooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
 import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
 
@@ -252,7 +253,7 @@ export class AdLad {
 									"Plugin is not allowed to modify needsPause because 'manualNeedsPause' is not set.",
 								);
 							}
-							this._setNeedsPause(needsPause);
+							this._needsPauseState.setValue(needsPause);
 						},
 						setNeedsMute: (needsMute) => {
 							if (!manualNeedsMute) {
@@ -260,7 +261,7 @@ export class AdLad {
 									"Plugin is not allowed to modify needsMute because 'manualNeedsMute' is not set.",
 								);
 							}
-							this._setNeedsMute(needsMute);
+							this._needsMuteState.setValue(needsMute);
 						},
 					});
 				} catch (e) {
@@ -311,14 +312,10 @@ export class AdLad {
 		this._lastGameplayStartCall = false;
 
 		/** @private */
-		this._needsPause = false;
-		/** @private @type {Set<OnNeedsPauseChangeCallback>} */
-		this._onNeedsPauseChangeCbs = new Set();
+		this._needsPauseState = new PluginBooleanState(false);
 
 		/** @private */
-		this._needsMute = false;
-		/** @private @type {Set<OnNeedsMuteChangeCallback>} */
-		this._onNeedsMuteChangeCbs = new Set();
+		this._needsMuteState = new PluginBooleanState(false);
 	}
 
 	/**
@@ -362,7 +359,7 @@ export class AdLad {
 	 * Use {@linkcode onNeedsPauseChange} to listen for changes.
 	 */
 	get needsPause() {
-		return this._needsPause;
+		return this._needsPauseState.value;
 	}
 
 	/**
@@ -372,27 +369,7 @@ export class AdLad {
 	 * Use {@linkcode onNeedsMuteChange} to listen for changes.
 	 */
 	get needsMute() {
-		return this._needsMute;
-	}
-
-	/**
-	 * @private
-	 * @param {boolean} needsPause
-	 */
-	_setNeedsPause(needsPause) {
-		if (needsPause == this._needsPause) return;
-		this._needsPause = needsPause;
-		this._onNeedsPauseChangeCbs.forEach((cb) => cb(needsPause));
-	}
-
-	/**
-	 * @private
-	 * @param {boolean} needsMute
-	 */
-	_setNeedsMute(needsMute) {
-		if (needsMute == this._needsMute) return;
-		this._needsMute = needsMute;
-		this._onNeedsMuteChangeCbs.forEach((cb) => cb(needsMute));
+		return this._needsMuteState.value;
 	}
 
 	/** @typedef {(needsPause: boolean) => void} OnNeedsPauseChangeCallback */
@@ -404,7 +381,7 @@ export class AdLad {
 	 * @param {OnNeedsPauseChangeCallback} cb
 	 */
 	onNeedsPauseChange(cb) {
-		this._onNeedsPauseChangeCbs.add(cb);
+		this._needsPauseState.onChange(cb);
 	}
 
 	/**
@@ -412,7 +389,7 @@ export class AdLad {
 	 * @param {OnNeedsPauseChangeCallback} cb
 	 */
 	removeOnNeedsPauseChange(cb) {
-		this._onNeedsPauseChangeCbs.delete(cb);
+		this._needsPauseState.removeOnChange(cb);
 	}
 
 	/**
@@ -421,7 +398,7 @@ export class AdLad {
 	 * @param {OnNeedsMuteChangeCallback} cb
 	 */
 	onNeedsMuteChange(cb) {
-		this._onNeedsMuteChangeCbs.add(cb);
+		this._needsMuteState.onChange(cb);
 	}
 
 	/**
@@ -429,7 +406,7 @@ export class AdLad {
 	 * @param {OnNeedsMuteChangeCallback} cb
 	 */
 	removeOnNeedsMuteChange(cb) {
-		this._onNeedsMuteChangeCbs.delete(cb);
+		this._needsMuteState.removeOnChange(cb);
 	}
 
 	/**
@@ -462,8 +439,8 @@ export class AdLad {
 			}
 			let pluginResult;
 			if (this._pluginInitializePromise) await this._pluginInitializePromise;
-			if (!this._manualNeedsPause) this._setNeedsPause(true);
-			if (!this._manualNeedsMute) this._setNeedsMute(true);
+			if (!this._manualNeedsPause) this._needsPauseState.setValue(true);
+			if (!this._manualNeedsMute) this._needsMuteState.setValue(true);
 			try {
 				pluginResult = await showFn();
 			} catch (e) {
@@ -481,8 +458,8 @@ export class AdLad {
 			return sanitizeFullScreenAdResult(pluginResult);
 		} finally {
 			this._isShowingAd = false;
-			if (!this._manualNeedsMute) this._setNeedsMute(false);
-			if (!this._manualNeedsPause) this._setNeedsPause(false);
+			if (!this._manualNeedsMute) this._needsMuteState.setValue(false);
+			if (!this._manualNeedsPause) this._needsPauseState.setValue(false);
 			this._updateGameplayStartState();
 		}
 	}
