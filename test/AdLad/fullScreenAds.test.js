@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "$std/testing/asserts.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
 import { assertPromiseResolved, initializingPluginTest, waitForMicrotasks } from "../shared.js";
