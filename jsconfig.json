@@ -5,7 +5,9 @@
 		"target": "esnext",
 		"checkJs": true,
 		"module": "esnext",
-		"strict": true
+		"strict": true,
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true
 	},
 	"include": [
 		"src/**/*.js",
