@@ -2,6 +2,7 @@ import { DeveloperBooleanState } from "./DeveloperBooleanState.js";
 import { PluginBooleanState } from "./PluginBooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
 import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
+import { generateUuid } from "./util.js";
 
 /** @typedef {"no-active-plugin" | "not-supported" | "no-ad-available" | "adblocker" | "time-constraint" | "user-dismissed" | "already-playing" | "unknown"} AdErrorReason */
 /**
@@ -40,6 +41,14 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  */
 
 /**
+ * @typedef ShowBannerAdPluginOptions
+ * @property {HTMLElement} el
+ * @property {string} id
+ * @property {number} width
+ * @property {number} height
+ */
+
+/**
  * @typedef AdLadPlugin
  * @property {string} name The name of your plugin, may only contain lowercase `a-z`, `_` or `-`. May not start or end with `_` or `-`.
  * @property {() => boolean} [shouldBeActive] While it is recommended to users to manually choose a plugin either
@@ -63,6 +72,8 @@ import { sanitizeFullScreenAdResult } from "./sanitizeFullScreenAdResult.js";
  * The return result should contain info about whether an ad was shown.
  * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
  * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
+ * @property {(options: ShowBannerAdPluginOptions) => void | Promise<void>} [showBannerAd] Hook that gets called when the user wishes
+ * to show a banner ad.
  *
  * @property {() => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
  * This will never be called twice in a row without `gameplayStop` being called first, except when the game starts for the first time.
@@ -575,5 +586,31 @@ export class AdLad {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showRewardedAd;
 		return await this._showPluginFullScreenAd(showFn);
+	}
+
+	/**
+	 * @param {HTMLElement | string} element
+	 */
+	showBannerAd(element) {
+		if (typeof element == "string") {
+			const el = document.getElementById(element);
+			if (!el) {
+				throw new Error(`Element with id "${element}" was not found.`);
+			}
+			element = el;
+		}
+		if (!this._plugin || !this._plugin.showBannerAd) return;
+
+		const rect = element.getBoundingClientRect();
+		if (!element.id) {
+			element.id = generateUuid();
+		}
+
+		this._plugin.showBannerAd({
+			el: element,
+			id: element.id,
+			width: rect.width,
+			height: rect.height,
+		});
 	}
 }

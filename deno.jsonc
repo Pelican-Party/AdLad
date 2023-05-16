@@ -1,6 +1,7 @@
 {
 	"compilerOptions": {
-		"checkJs": true
+		"checkJs": true,
+		"lib": ["dom", "dom.iterable", "esnext", "deno.ns"]
 	},
 	"tasks": {
 		// Updates third party types. Useful if you want type checking in your IDE.
