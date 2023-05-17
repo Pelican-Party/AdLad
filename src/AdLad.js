@@ -137,6 +137,60 @@ const invalidQueryStringBehaviourTypes = [
  * For example, you would be able to set `?adlad=none` to completely disable plugins this way.
  */
 
+// TODO: These types would be a lot more readable when inside a .ts or .d.ts file,
+// but the bundler doesn't seem to export these, so we'll use JSDoc for now.
+
+/**
+ * Utility to provide methods with autocompletion and type checking based on which plugins are used.
+ * @template {AdLadPlugin} TPlugins
+ * @template {string} TOptionsName
+ * @template {number} TArgIndex
+ * @typedef {OmitMissing<CollectPluginArgsWithNever<TPlugins, TOptionsName, TArgIndex>>} CollectPluginArgs
+ */
+
+/**
+ * Utility that removes `never` and `undefined` types from an object.
+ * @template T
+ * @typedef {{ [K in keyof T as T[K] extends never | undefined ? never : K]: T[K] }} OmitMissing
+ */
+
+/**
+ * @template {AdLadPlugin} TPlugins
+ * @template {string} TOptionsName
+ * @template {number} TArgIndex
+ * @typedef {{
+ * 	[TPluginName in TPlugins["name"]]: GetMaybeParameters<
+ * 		GetPluginFromUnionByName<TPlugins, TPluginName>,
+ * 		TOptionsName,
+ * 		TArgIndex
+ * 	>;
+ * }} CollectPluginArgsWithNever
+ */
+
+/**
+ * Filters all plugins that do not match the given name from a union.
+ * @template TPluginsUnion
+ * @template {string} TPluginName
+ * @typedef {TPluginsUnion extends {name: TPluginName} ? TPluginsUnion : never} GetPluginFromUnionByName
+ */
+
+/**
+ * Gets the type of a parameter from the provided method on a plugin.
+ * Results in `never` when either the method or the parameter doesn't exist.
+ * @template {AdLadPlugin} TPlugin
+ * @template {string} TOptionsName
+ * @template {number} TArgIndex
+ * @typedef {TOptionsName extends keyof TPlugin
+ * 	? TPlugin[TOptionsName] extends (...args: any[]) => any
+ * 		? Parameters<TPlugin[TOptionsName]> extends infer Params
+ * 			? Params extends any[]
+ * 				? Params[TArgIndex]
+ * 				: never
+ * 			: never
+ * 		: never
+ * 	: never} GetMaybeParameters
+ */
+
 /**
  * @template {AdLadPlugin} TPlugins
  */
@@ -387,60 +441,6 @@ export class AdLad {
 		this._gameplayStartState.setState(this._lastGameplayStartCall && !this._isShowingAd);
 		await this._gameplayStartState.waitForEmptyQueue();
 	}
-
-	// TODO: These types would be a lot more readable when inside a .ts or .d.ts file,
-	// but the bundler doesn't seem to export these, so we'll use JSDoc for now.
-
-	/**
-	 * Utility to provide methods with autocompletion and type checking based on which plugins are used.
-	 * @template {AdLadPlugin} TPlugins
-	 * @template {string} TOptionsName
-	 * @template {number} TArgIndex
-	 * @typedef {OmitMissing<CollectPluginArgsWithNever<TPlugins, TOptionsName, TArgIndex>>} CollectPluginArgs
-	 */
-
-	/**
-	 * Utility that removes `never` and `undefined` types from an object.
-	 * @template T
-	 * @typedef {{ [K in keyof T as T[K] extends never | undefined ? never : K]: T[K] }} OmitMissing
-	 */
-
-	/**
-	 * @template {AdLadPlugin} TPlugins
-	 * @template {string} TOptionsName
-	 * @template {number} TArgIndex
-	 * @typedef {{
-	 * 	[TPluginName in TPlugins["name"]]: GetMaybeParameters<
-	 * 		GetPluginFromUnionByName<TPlugins, TPluginName>,
-	 * 		TOptionsName,
-	 * 		TArgIndex
-	 * 	>;
-	 * }} CollectPluginArgsWithNever
-	 */
-
-	/**
-	 * Filters all plugins that do not match the given name from a union.
-	 * @template TPluginsUnion
-	 * @template {string} TPluginName
-	 * @typedef {TPluginsUnion extends {name: TPluginName} ? TPluginsUnion : never} GetPluginFromUnionByName
-	 */
-
-	/**
-	 * Gets the type of a parameter from the provided method on a plugin.
-	 * Results in `never` when either the method or the parameter doesn't exist.
-	 * @template {AdLadPlugin} TPlugin
-	 * @template {string} TOptionsName
-	 * @template {number} TArgIndex
-	 * @typedef {TOptionsName extends keyof TPlugin
-	 * 	? TPlugin[TOptionsName] extends (...args: any[]) => any
-	 * 		? Parameters<TPlugin[TOptionsName]> extends infer Params
-	 * 			? Params extends any[]
-	 * 				? Params[TArgIndex]
-	 * 				: never
-	 * 			: never
-	 * 		: never
-	 * 	: never} GetMaybeParameters
-	 */
 
 	gameplayStart() {
 		this._lastGameplayStartCall = true;
