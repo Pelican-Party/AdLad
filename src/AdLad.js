@@ -651,7 +651,7 @@ export class AdLad {
 	 * @param {Object} options
 	 * @param {CollectPluginArgs<TPlugins, "showBannerAd", 1>} [options.pluginOptions]
 	 */
-	showBannerAd(element, options = {}) {
+	async showBannerAd(element, options = {}) {
 		if (typeof element == "string") {
 			const el = document.getElementById(element);
 			if (!el) {
@@ -660,6 +660,7 @@ export class AdLad {
 			element = el;
 		}
 		if (!this._plugin || !this.activePlugin || !this._plugin.showBannerAd) return;
+		if (this._pluginInitializePromise) await this._pluginInitializePromise;
 
 		const rect = element.getBoundingClientRect();
 		if (!element.id) {
@@ -670,7 +671,7 @@ export class AdLad {
 		const pluginOptions = options.pluginOptions || {};
 		const userOptions = pluginOptions[this.activePlugin];
 
-		this._plugin.showBannerAd({
+		await this._plugin.showBannerAd({
 			el: element,
 			id: element.id,
 			width: rect.width,

@@ -1,7 +1,7 @@
 import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { assertEquals } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { testTypes } from "../shared.js";
+import { assertPromiseResolved, initializingPluginTest, testTypes, waitForMicrotasks } from "../shared.js";
 
 function createMockElement({
 	width = 300,
@@ -78,6 +78,25 @@ Deno.test({
 				undefined,
 			],
 		});
+	},
+});
+
+Deno.test({
+	name: "Doesn't fire on plugin until it has been initialized",
+	async fn() {
+		const { plugin, showBannerSpy } = createSpyPlugin();
+		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
+
+		const el = createMockElement();
+		const promise = adLad.showBannerAd(el);
+
+		await waitForMicrotasks();
+		assertSpyCalls(showBannerSpy, 0);
+		await assertPromiseResolved(promise, false);
+
+		await resolveInitialize();
+		assertSpyCalls(showBannerSpy, 1);
+		await assertPromiseResolved(promise, true);
 	},
 });
 
