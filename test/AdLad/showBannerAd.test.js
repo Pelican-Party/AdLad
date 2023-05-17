@@ -1,7 +1,13 @@
 import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { assertEquals } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { assertPromiseResolved, initializingPluginTest, testTypes, waitForMicrotasks } from "../shared.js";
+import {
+	assertPromiseResolved,
+	createOnBooleanChangeSpy,
+	initializingPluginTest,
+	testTypes,
+	waitForMicrotasks,
+} from "../shared.js";
 
 function createMockElement({
 	width = 300,
@@ -25,6 +31,12 @@ Deno.test({
 	name: "Does nothing when no plugin is active",
 	fn() {
 		const adLad = new AdLad();
+		const changeSpy = createOnBooleanChangeSpy();
+		adLad.onCanShowBannerAdChange(changeSpy);
+
+		assertEquals(adLad.canShowBannerAd, false);
+		assertSpyCalls(changeSpy, 0);
+
 		const el = createMockElement();
 		adLad.showBannerAd(el);
 	},
@@ -38,6 +50,12 @@ Deno.test({
 				name: "plugin",
 			},
 		]);
+		const changeSpy = createOnBooleanChangeSpy();
+		adLad.onCanShowBannerAdChange(changeSpy);
+
+		assertEquals(adLad.canShowBannerAd, false);
+		assertSpyCalls(changeSpy, 0);
+
 		const el = createMockElement();
 		adLad.showBannerAd(el);
 	},
@@ -55,6 +73,27 @@ function createSpyPlugin({
 	const showBannerSpy = spy(castPlugin, "showBannerAd");
 	return { plugin, showBannerSpy };
 }
+
+Deno.test({
+	name: "canShowBannerAd becomes true once initialized",
+	async fn() {
+		const { plugin } = createSpyPlugin();
+		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
+		const changeSpy = createOnBooleanChangeSpy();
+		adLad.onCanShowBannerAdChange(changeSpy);
+
+		assertEquals(adLad.canShowBannerAd, false);
+		assertSpyCalls(changeSpy, 0);
+
+		await resolveInitialize();
+
+		assertEquals(adLad.canShowBannerAd, true);
+		assertSpyCalls(changeSpy, 1);
+		assertSpyCall(changeSpy, 0, {
+			args: [true],
+		});
+	},
+});
 
 Deno.test({
 	name: "Passes the request on to the plugin",

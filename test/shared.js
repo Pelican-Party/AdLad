@@ -1,3 +1,4 @@
+import { spy } from "$std/testing/mock.ts";
 import { assert } from "$std/testing/asserts.ts";
 import { AdLad } from "../src/AdLad.js";
 
@@ -41,6 +42,12 @@ export function initializingPluginTest(plugin) {
 			await waitForMicrotasks;
 		},
 	};
+}
+
+export function createOnBooleanChangeSpy() {
+	/** @type {(onChange: boolean) => void} */
+	const spyFn = () => {};
+	return spy(spyFn);
 }
 
 /**

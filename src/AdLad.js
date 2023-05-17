@@ -323,6 +323,8 @@ export class AdLad {
 		this._canShowFullScreenAdState = new PluginBooleanState(false);
 		/** @private */
 		this._canShowRewardedAdState = new PluginBooleanState(false);
+		/** @private */
+		this._canShowBannerAdState = new PluginBooleanState(false);
 
 		/** @type {Promise<void> | void} */
 		let pluginInitializeResult;
@@ -336,6 +338,7 @@ export class AdLad {
 				let canShowRewardedAdAdjusted = false;
 				const certainShowFullScreenAd = this._plugin.showFullScreenAd;
 				const certainShowRewardedAd = this._plugin.showRewardedAd;
+				const certainShowBannerAd = this._plugin.showBannerAd;
 				pluginInitializeResult = (async () => {
 					try {
 						await certainInitialize({
@@ -373,6 +376,9 @@ export class AdLad {
 					}
 					if (!canShowRewardedAdAdjusted && certainShowRewardedAd) {
 						this._canShowRewardedAdState.setValue(true);
+					}
+					if (certainShowBannerAd) {
+						this._canShowBannerAdState.setValue(true);
 					}
 				})();
 			} else {
@@ -644,6 +650,33 @@ export class AdLad {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showRewardedAd;
 		return await this._showPluginFullScreenAd(showFn);
+	}
+
+	/**
+	 * This is true when a plugin has initialized and supports the {@linkcode showBannerAd} method.
+	 * When this is true, that is not a guarantee that {@linkcode showBannerAd} will always show an ad.
+	 * It might still fail due to adblockers, time constraints, unknown reasons, etc.
+	 */
+	get canShowBannerAd() {
+		return this._canShowBannerAdState.value;
+	}
+
+	/** @typedef {(canShowBannerAd: boolean) => void} OnCanShowBannerAdChangeCallback */
+
+	/**
+	 * Registers a callback that is fired when {@linkcode canShowBannerAd} changes.
+	 * @param {OnCanShowBannerAdChangeCallback} cb
+	 */
+	onCanShowBannerAdChange(cb) {
+		this._canShowBannerAdState.onChange(cb);
+	}
+
+	/**
+	 * Use this to unregister callbacks registered with {@linkcode onCanShowBannerAdChange}.
+	 * @param {OnCanShowBannerAdChangeCallback} cb
+	 */
+	removeOnCanShowBannerAdChange(cb) {
+		this._canShowBannerAdState.removeOnChange(cb);
 	}
 
 	/**

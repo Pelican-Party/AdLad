@@ -1,7 +1,7 @@
 import { assertEquals } from "$std/testing/asserts.ts";
-import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
+import { assertSpyCall, assertSpyCalls } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
-import { waitForMicrotasks } from "../shared.js";
+import { createOnBooleanChangeSpy, waitForMicrotasks } from "../shared.js";
 
 Deno.test({
 	name: "canShowFullScreenAd when no plugin is active",
@@ -53,12 +53,6 @@ function initializePromisePlugin(pluginOptions) {
 	};
 }
 
-function createOnChangeSpy() {
-	/** @type {(onChange: boolean) => void} */
-	const spyFn = () => {};
-	return spy(spyFn);
-}
-
 Deno.test({
 	name: "canShowFullScreenAd becomes true once plugins are initialized",
 	async fn() {
@@ -74,7 +68,7 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowFullScreenAd, false);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowFullScreenAdChange(changeSpy);
 
 		await resolvePromise();
@@ -102,7 +96,7 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowRewardedAd, false);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowRewardedAdChange(changeSpy);
 
 		await resolvePromise();
@@ -123,7 +117,7 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowFullScreenAd, false);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowFullScreenAdChange(changeSpy);
 
 		await resolvePromise();
@@ -141,7 +135,7 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowRewardedAd, false);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowRewardedAdChange(changeSpy);
 
 		await resolvePromise();
@@ -172,7 +166,7 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowFullScreenAd, false);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowFullScreenAdChange(changeSpy);
 
 		await resolvePromise();
@@ -222,7 +216,7 @@ Deno.test({
 		const adLad = new AdLad([plugin]);
 		assertEquals(adLad.canShowRewardedAd, false);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowRewardedAdChange(changeSpy);
 
 		await resolvePromise();
@@ -266,7 +260,7 @@ Deno.test({
 			},
 		]);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowFullScreenAdChange(changeSpy);
 
 		assertEquals(adLad.canShowFullScreenAd, true);
@@ -289,7 +283,7 @@ Deno.test({
 			},
 		]);
 
-		const changeSpy = createOnChangeSpy();
+		const changeSpy = createOnBooleanChangeSpy();
 		adLad.onCanShowRewardedAdChange(changeSpy);
 
 		assertEquals(adLad.canShowRewardedAd, true);
