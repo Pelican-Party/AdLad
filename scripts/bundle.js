@@ -46,6 +46,7 @@ const proc = Deno.run({
 		"--allow-env",
 		"--allow-read",
 		"--allow-write",
+		"--node-modules-dir=false",
 		"npm:typescript@4.9.5/tsc",
 		"-p",
 		"./generateTypes.tsconfig.json",

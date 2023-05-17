@@ -72,7 +72,7 @@ import { generateUuid } from "./util.js";
  * The return result should contain info about whether an ad was shown.
  * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
  * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
- * @property {(options: ShowBannerAdPluginOptions) => void | Promise<void>} [showBannerAd] Hook that gets called when the user wishes
+ * @property {(options: ShowBannerAdPluginOptions, userOptions: any) => void | Promise<void>} [showBannerAd] Hook that gets called when the user wishes
  * to show a banner ad.
  *
  * @property {() => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
@@ -106,8 +106,9 @@ const invalidQueryStringBehaviourTypes = [
 ];
 
 /**
+ * @template {AdLadPlugin} TPlugins
  * @typedef AdLadOptions
- * @property {AdLadPlugin[]} [plugins] The list of plugins that will be supported.
+ * @property {TPlugins[]} [plugins] The list of plugins that will be supported.
  * Only a single plugin of this list will be activated depending on which options have been provided to AdLad.
  * By default each plugin will tell AdLad whether it wishes to be active.
  * If more than one plugin wishes to be active, the last plugin of this list will be picked.
@@ -136,6 +137,9 @@ const invalidQueryStringBehaviourTypes = [
  * For example, you would be able to set `?adlad=none` to completely disable plugins this way.
  */
 
+/**
+ * @template {AdLadPlugin} TPlugins
+ */
 export class AdLad {
 	/**
 	 * You can instantiate the AdLad class with a list of plugins that should be supported.
@@ -157,14 +161,14 @@ export class AdLad {
 	 * there are some configurations available in order to control or completely disable this functionality.
 	 *
 	 * Using the query string to select plugins is the recommended method.
-	 * Doing it like this will allow you to provide your domain including the query string to different
+	 * Doing it like <this will allow you to provide your domain including the query string to different
 	 * game portals, which is a much more robust way than trying to figure out where your game is being embedded.
 	 * The domains from game portals may change at any time, in which case you will have to update its plugin.
 	 * The query string, on the other hand, can be configured by you and so will likely never change.
 	 *
 	 * If you still want to make sure players can not disable ads using the query string,
 	 * you can set `invalidQueryStringPluginBehaviour` to either `"error"` or `"default"`
-	 * @param {AdLadOptions | AdLadPlugin[]} [options]
+	 * @param {AdLadOptions<TPlugins> | TPlugins[]} [options]
 	 */
 	constructor(options) {
 		/** @type {AdLadPlugin[]} */
@@ -384,6 +388,60 @@ export class AdLad {
 		await this._gameplayStartState.waitForEmptyQueue();
 	}
 
+	// TODO: These types would be a lot more readable when inside a .ts or .d.ts file,
+	// but the bundler doesn't seem to export these, so we'll use JSDoc for now.
+
+	/**
+	 * Utility to provide methods with autocompletion and type checking based on which plugins are used.
+	 * @template {AdLadPlugin} TPlugins
+	 * @template {string} TOptionsName
+	 * @template {number} TArgIndex
+	 * @typedef {OmitMissing<CollectPluginArgsWithNever<TPlugins, TOptionsName, TArgIndex>>} CollectPluginArgs
+	 */
+
+	/**
+	 * Utility that removes `never` and `undefined` types from an object.
+	 * @template T
+	 * @typedef {{ [K in keyof T as T[K] extends never | undefined ? never : K]: T[K] }} OmitMissing
+	 */
+
+	/**
+	 * @template {AdLadPlugin} TPlugins
+	 * @template {string} TOptionsName
+	 * @template {number} TArgIndex
+	 * @typedef {{
+	 * 	[TPluginName in TPlugins["name"]]: GetMaybeParameters<
+	 * 		GetPluginFromUnionByName<TPlugins, TPluginName>,
+	 * 		TOptionsName,
+	 * 		TArgIndex
+	 * 	>;
+	 * }} CollectPluginArgsWithNever
+	 */
+
+	/**
+	 * Filters all plugins that do not match the given name from a union.
+	 * @template TPluginsUnion
+	 * @template {string} TPluginName
+	 * @typedef {TPluginsUnion extends {name: TPluginName} ? TPluginsUnion : never} GetPluginFromUnionByName
+	 */
+
+	/**
+	 * Gets the type of a parameter from the provided method on a plugin.
+	 * Results in `never` when either the method or the parameter doesn't exist.
+	 * @template {AdLadPlugin} TPlugin
+	 * @template {string} TOptionsName
+	 * @template {number} TArgIndex
+	 * @typedef {TOptionsName extends keyof TPlugin
+	 * 	? TPlugin[TOptionsName] extends (...args: any[]) => any
+	 * 		? Parameters<TPlugin[TOptionsName]> extends infer Params
+	 * 			? Params extends any[]
+	 * 				? Params[TArgIndex]
+	 * 				: never
+	 * 			: never
+	 * 		: never
+	 * 	: never} GetMaybeParameters
+	 */
+
 	gameplayStart() {
 		this._lastGameplayStartCall = true;
 		this._updateGameplayStartState();
@@ -590,8 +648,10 @@ export class AdLad {
 
 	/**
 	 * @param {HTMLElement | string} element
+	 * @param {Object} options
+	 * @param {CollectPluginArgs<TPlugins, "showBannerAd", 1>} [options.pluginOptions]
 	 */
-	showBannerAd(element) {
+	showBannerAd(element, options = {}) {
 		if (typeof element == "string") {
 			const el = document.getElementById(element);
 			if (!el) {
@@ -599,18 +659,22 @@ export class AdLad {
 			}
 			element = el;
 		}
-		if (!this._plugin || !this._plugin.showBannerAd) return;
+		if (!this._plugin || !this.activePlugin || !this._plugin.showBannerAd) return;
 
 		const rect = element.getBoundingClientRect();
 		if (!element.id) {
 			element.id = generateUuid();
 		}
 
+		/** @type {Object.<string, any>} */
+		const pluginOptions = options.pluginOptions || {};
+		const userOptions = pluginOptions[this.activePlugin];
+
 		this._plugin.showBannerAd({
 			el: element,
 			id: element.id,
 			width: rect.width,
 			height: rect.height,
-		});
+		}, userOptions);
 	}
 }
