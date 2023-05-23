@@ -1,4 +1,8 @@
-# AdLad
+<p align="center">
+	<img src="./adLad.svg" width="100" />
+</p>
+
+<h1 align="center">AdLad</h1>
 
 AdLad allows you to easily integrate ads for your games without the need for different implementations from every
 publisher. Instead, you can configure which plugins you would like to use, and whenever you want to show an ad, AdLad
