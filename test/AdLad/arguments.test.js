@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
+import { assertIsType, testTypes } from "../shared.js";
 
 /**
  * @param {string?} expectedPlugin
@@ -379,5 +380,44 @@ Deno.test({
 			plugin: "alsoInvalid",
 			invalidQueryStringPluginBehaviour: "none",
 		});
+	},
+});
+
+testTypes({
+	name: "plugin generic types are inferred from the arguments",
+	fn() {
+		const a = /** @type {const} */ ("plugin-a");
+		const b = /** @type {const} */ ("plugin-b");
+		const abOrNull = /** @type {"plugin-a" | "plugin-b" | null} */ ("");
+
+		const adLad1 = new AdLad([
+			/** @type {const} */ ({ name: "plugin-a" }),
+			/** @type {const} */ ({ name: "plugin-b" }),
+		]);
+		const activePlugin1 = adLad1.activePlugin;
+
+		// Verify that the type is a `"plugin-a" | "plugin-b" | null` and nothing else
+		assertIsType(abOrNull, activePlugin1);
+		assertIsType(activePlugin1, a);
+		assertIsType(activePlugin1, b);
+		assertIsType(activePlugin1, null);
+		// @ts-expect-error Verify that the type isn't 'any'
+		assertIsType(true, activePlugin1);
+
+		const adLad2 = new AdLad({
+			plugins: [
+				/** @type {const} */ ({ name: "plugin-a" }),
+				/** @type {const} */ ({ name: "plugin-b" }),
+			],
+		});
+		const activePlugin2 = adLad2.activePlugin;
+
+		// Verify that the type is a `"plugin-a" | "plugin-b" | null` and nothing else
+		assertIsType(abOrNull, activePlugin2);
+		assertIsType(activePlugin2, a);
+		assertIsType(activePlugin2, b);
+		assertIsType(activePlugin2, null);
+		// @ts-expect-error Verify that the type isn't 'any'
+		assertIsType(true, activePlugin2);
 	},
 });

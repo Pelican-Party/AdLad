@@ -206,7 +206,6 @@ testTypes({
 				bar(_str) {},
 			},
 		});
-		/** @type {AdLad<typeof pluginA| typeof pluginB>} */
 		const adLad = new AdLad([pluginA, pluginB]);
 
 		adLad.customRequestSpecific("plugin-a", "foo");

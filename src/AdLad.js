@@ -455,7 +455,7 @@ export class AdLad {
 	 * The name of the plugin that is currently active or `null` when no plugin is active.
 	 */
 	get activePlugin() {
-		if (this._plugin) return this._plugin.name;
+		if (this._plugin) return /** @type {TPlugins["name"]} */ (this._plugin.name);
 		return null;
 	}
 
