@@ -8,7 +8,7 @@ export function getBestPlugin(plugins = []) {
 		return plugin.shouldBeActive();
 	});
 	if (desiredActivePlugins.length > 0) {
-		return desiredActivePlugins[desiredActivePlugins.length - 1];
+		return desiredActivePlugins[0];
 	}
 	return null;
 }

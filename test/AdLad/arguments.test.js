@@ -248,7 +248,7 @@ Deno.test({
 Deno.test({
 	name: "allowQueryStringPluginSelection false",
 	fn() {
-		queryStringTest("?adlad=plugina", "pluginb", {
+		queryStringTest("?adlad=pluginb", "plugina", {
 			plugins: [
 				{ name: "plugina" },
 				{ name: "pluginb" },
@@ -256,7 +256,7 @@ Deno.test({
 			allowQueryStringPluginSelection: false,
 		});
 
-		queryStringTest("?adlad=plugina&differentKey=plugina", "pluginb", {
+		queryStringTest("?adlad=pluginb&differentKey=plugina", "plugina", {
 			plugins: [
 				{ name: "plugina" },
 				{ name: "pluginb" },
@@ -285,7 +285,7 @@ Deno.test({
 Deno.test({
 	name: "invalid query string plugin defaults to fallback",
 	fn() {
-		queryStringTest("?adlad=invalid", "pluginb", {
+		queryStringTest("?adlad=invalid", "plugina", {
 			plugins: [
 				{ name: "plugina" },
 				{ name: "pluginb" },

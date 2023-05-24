@@ -162,7 +162,7 @@ Deno.test({
 		const { plugin: wrongPlugin, showBannerSpy: showBannerWrongSpy } = createSpyPlugin({
 			name: "wrong-plugin",
 		});
-		const adLad = new AdLad([wrongPlugin, rightPlugin]);
+		const adLad = new AdLad([rightPlugin, wrongPlugin]);
 		const el = createMockElement();
 
 		adLad.showBannerAd(el, {

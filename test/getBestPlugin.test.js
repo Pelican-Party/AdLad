@@ -45,7 +45,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Picks the last plugin when more than one wishes to be active",
+	name: "Picks the first plugin when more than one wishes to be active",
 	fn() {
 		/** @type {import("../src/AdLad.js").AdLadPlugin} */
 		const pluginA = {
@@ -66,7 +66,7 @@ Deno.test({
 			shouldBeActive: () => false,
 		};
 		const result = getBestPlugin([pluginA, pluginB, pluginC, pluginD]);
-		assertStrictEquals(result, pluginC);
+		assertStrictEquals(result, pluginB);
 	},
 });
 
