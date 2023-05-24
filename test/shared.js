@@ -1,6 +1,10 @@
 import { spy } from "$std/testing/mock.ts";
 import { assert } from "$std/testing/asserts.ts";
 import { AdLad } from "../src/AdLad.js";
+import {
+	assertIsType,
+	testTypes,
+} from "https://raw.githubusercontent.com/rendajs/Renda/db4a1d9bf273cf1ec8ca5f90ff5b9b655700d9ee/test/unit/shared/typeAssertions.js";
 
 export function waitForMicrotasks() {
 	return new Promise((resolve) => {
@@ -12,7 +16,8 @@ export function waitForMicrotasks() {
  * Creates an AdLad instance with the provided plugin,
  * except that the `initialize` hook of the plugin is replaced with one
  * that returns a promise which doesn't resolve until `resolveInitialize` is called.
- * @param {import("../src/AdLad.js").AdLadPlugin} plugin
+ * @template {import("../src/AdLad.js").AdLadPlugin} TPlugin
+ * @param {TPlugin} plugin
  */
 export function initializingPluginTest(plugin) {
 	let resolveInitialize = () => {};
@@ -39,7 +44,7 @@ export function initializingPluginTest(plugin) {
 		},
 		async rejectInitialize() {
 			rejectInitialize();
-			await waitForMicrotasks;
+			await waitForMicrotasks();
 		},
 	};
 }
@@ -69,13 +74,4 @@ export async function assertPromiseResolved(promise, expected) {
 	assert(resolved == expected, msg);
 }
 
-/**
- * This function does absolutely nothing. It is never run.
- * It's only purpose is to make tests look nice without the linter complaining about unreachable code.
- * The `fn` parameter can be used to write code that will never be run, but still gets type checked.
- * @param {object} options
- * @param {string} options.name
- * @param {() => void | Promise<void>} options.fn
- */
-// deno-lint-ignore no-unused-vars
-export function testTypes({ name, fn }) {}
+export { assertIsType, testTypes };

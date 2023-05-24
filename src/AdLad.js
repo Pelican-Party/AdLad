@@ -93,6 +93,8 @@ import { generateUuid } from "./util.js";
  * let AdLad know about the `needsMute` value and its events. By default `needsMute` is automatically managed and
  * set to `true` during full screen ads. But when you enable manual management you have more control over this.
  * For example, you could make sure `needsMute` becomes true once the ad actually loads, instead of the moment it is requested.
+ *
+ * @property {Object.<string, (...args: any[]) => any>} [customRequests]
  */
 
 /**
@@ -189,6 +191,23 @@ const invalidQueryStringBehaviourTypes = [
  * 			: never
  * 		: never
  * 	: never} GetMaybeParameters
+ */
+
+/**
+ * @template {AdLadPlugin} TPlugins
+ * @template {string} TCommand
+ * @typedef {TPlugins["customRequests"] extends {[x in TCommand]: any}
+ * 	? TPlugins["customRequests"][TCommand]
+ * 	: (...args: any[]) => unknown} GetCustomRequestSignature
+ */
+
+/**
+ * @template {AdLadPlugin} TPlugins
+ * @typedef {TPlugins["customRequests"] extends {[x in infer TCommand]: any}
+ * 	? TCommand extends string
+ * 		? TCommand
+ * 		: never
+ * 	: never} GetCustomRequestCommands
  */
 
 /**
@@ -710,5 +729,45 @@ export class AdLad {
 			width: rect.width,
 			height: rect.height,
 		}, userOptions);
+	}
+
+	/**
+	 * Sends a custom request to the plugin that is currently active.
+	 * Every plugin can handle these requests according their own specification.
+	 * This allows plugins to extend their functionality with features that are not built-in into AdLad.
+	 * For example, an sdk might have support for a `happytime()` call or getting an invite link.
+	 *
+	 * Plugins often share a similar signature for similar requests.
+	 * When two plugins require the same arguments, you can use this just fine
+	 * and your request will be forwarded to the plugin that is currently active.
+	 * But it's possible that two plugins have name clashes between commands and both require a different set of parameters.
+	 * In that case you can use {@linkcode customRequestSpecific} to target your parameters to a specific plugin.
+	 * @template {GetCustomRequestCommands<TPlugins>} TCommand
+	 * @param {TCommand} command
+	 * @param {Parameters<GetCustomRequestSignature<TPlugins, TCommand>>} args
+	 */
+	async customRequest(command, ...args) {
+		if (!this.activePlugin) return;
+		const result = await this.customRequestSpecific(this.activePlugin, command, ...args);
+		return /** @type {ReturnType<GetCustomRequestSignature<TPlugins, TCommand>>} */ (result);
+	}
+
+	/**
+	 * Similar to {@linkcode customRequest} but targets a specific plugin.
+	 * If the specified plugin is not the active plugin, this is a no-op.
+	 * @template {TPlugins["name"]} TPluginName
+	 * @template {GetCustomRequestCommands<GetPluginFromUnionByName<TPlugins, TPluginName>>} TCommand
+	 * @param {TPluginName} plugin
+	 * @param {TCommand} command
+	 * @param {Parameters<GetCustomRequestSignature<TPlugins, TCommand>>} args
+	 */
+	async customRequestSpecific(plugin, command, ...args) {
+		if (plugin != this.activePlugin || !this._plugin || !this._plugin.customRequests) return;
+		if (this._pluginInitializePromise) await this._pluginInitializePromise;
+		const requestFunction = this._plugin.customRequests[command];
+		if (!requestFunction) return;
+
+		const result = requestFunction(...args);
+		return /** @type {ReturnType<GetCustomRequestSignature<TPlugins, TCommand>>} */ (result);
 	}
 }
