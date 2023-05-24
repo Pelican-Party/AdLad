@@ -381,32 +381,3 @@ Deno.test({
 		});
 	},
 });
-
-// Deno.test({
-// 	name: "test",
-// 	only: true,
-// 	fn() {
-// 		const
-
-// 		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
-// 		const pluginA = {
-// 			name: "plugin-a",
-// 			initialize(ctx) {},
-// 		};
-
-// 		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
-// 		const pluginB = {
-// 			name: "plugin-b",
-// 			initialize(ctx) {},
-// 		};
-
-// 		const adLad = new AdLad({
-// 			plugins: [pluginA, pluginB],
-// 			plugin: "plugin-a",
-// 			pluginSelectQueryStringKey: "myQueryString",
-// 			invalidQueryStringPluginBehaviour: "none",
-// 		})
-
-// 		assertEquals(adLad.activePlugin, "plugin-a");
-// 	}
-// })
