@@ -345,8 +345,8 @@ export class AdLad {
 		/** @private */
 		this._canShowBannerAdState = new PluginBooleanState(false);
 
-		/** @type {Promise<void> | void} */
-		let pluginInitializeResult;
+		/** @type {Promise<void> | null} */
+		let pluginInitializeResult = null;
 		if (this._plugin) {
 			if (this._plugin.initialize) {
 				const certainInitialize = this._plugin.initialize;
@@ -411,7 +411,7 @@ export class AdLad {
 		}
 
 		/** @private */
-		this._pluginInitializePromise = pluginInitializeResult || null;
+		this._pluginInitializePromise = pluginInitializeResult;
 
 		/** @private */
 		this._isShowingAd = false;
