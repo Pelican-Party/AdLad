@@ -8,22 +8,16 @@ import {
 	testTypes,
 	waitForMicrotasks,
 } from "../shared.js";
+import { HtmlElement } from "$fake-dom/FakeHtmlElement.js";
+import { runWithDom, runWithDomAsync } from "$fake-dom/FakeDocument.js";
 
 function createMockElement({
 	width = 300,
 	height = 200,
 	id = "",
 } = {}) {
-	const el = /** @type {HTMLElement} */ ({
-		getBoundingClientRect() {
-			const rect = /** @type {DOMRect} */ ({
-				width,
-				height,
-			});
-			return rect;
-		},
-		id,
-	});
+	const el = new HtmlElement({ tagName: "div", clientWidth: width, clientHeight: height });
+	el.id = id;
 	return el;
 }
 
@@ -77,45 +71,46 @@ function createSpyPlugin({
 Deno.test({
 	name: "canShowBannerAd becomes true once initialized",
 	async fn() {
-		const { plugin } = createSpyPlugin();
-		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
-		const changeSpy = createOnBooleanChangeSpy();
-		adLad.onCanShowBannerAdChange(changeSpy);
+		await runWithDomAsync(async () => {
+			const { plugin } = createSpyPlugin();
+			const { adLad, resolveInitialize } = initializingPluginTest(plugin);
+			const changeSpy = createOnBooleanChangeSpy();
+			adLad.onCanShowBannerAdChange(changeSpy);
 
-		assertEquals(adLad.canShowBannerAd, false);
-		assertSpyCalls(changeSpy, 0);
+			assertEquals(adLad.canShowBannerAd, false);
+			assertSpyCalls(changeSpy, 0);
 
-		await resolveInitialize();
+			await resolveInitialize();
 
-		assertEquals(adLad.canShowBannerAd, true);
-		assertSpyCalls(changeSpy, 1);
-		assertSpyCall(changeSpy, 0, {
-			args: [true],
+			assertEquals(adLad.canShowBannerAd, true);
+			assertSpyCalls(changeSpy, 1);
+			assertSpyCall(changeSpy, 0, {
+				args: [true],
+			});
 		});
 	},
 });
 
 Deno.test({
-	name: "Passes the request on to the plugin",
+	name: "Passes the request on to the plugin with a newly created element and id",
 	fn() {
-		const { plugin, showBannerSpy } = createSpyPlugin();
-		const adLad = new AdLad([plugin]);
-		const id = "the_element_id";
-		const el = createMockElement({ id });
+		runWithDom(() => {
+			const { plugin, showBannerSpy } = createSpyPlugin();
+			const adLad = new AdLad([plugin]);
+			const id = "the_element_id";
+			const el = createMockElement({ id });
 
-		adLad.showBannerAd(el);
+			adLad.showBannerAd(el);
 
-		assertSpyCalls(showBannerSpy, 1);
-		assertSpyCall(showBannerSpy, 0, {
-			args: [
-				{
-					el,
-					id,
-					width: 300,
-					height: 200,
-				},
-				undefined,
-			],
+			assertSpyCalls(showBannerSpy, 1);
+			const childEl = showBannerSpy.calls[0].args[0].el;
+			assertEquals(showBannerSpy.calls[0].args[0].id, childEl.id);
+			assertEquals(showBannerSpy.calls[0].args[0].width, 300);
+			assertEquals(showBannerSpy.calls[0].args[0].height, 200);
+			assertEquals(showBannerSpy.calls[0].args[1], undefined);
+
+			assertEquals(childEl.style.width, "100%");
+			assertEquals(childEl.style.height, "100%");
 		});
 	},
 });
@@ -123,65 +118,55 @@ Deno.test({
 Deno.test({
 	name: "Doesn't fire on plugin until it has been initialized",
 	async fn() {
-		const { plugin, showBannerSpy } = createSpyPlugin();
-		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
+		await runWithDomAsync(async () => {
+			const { plugin, showBannerSpy } = createSpyPlugin();
+			const { adLad, resolveInitialize } = initializingPluginTest(plugin);
 
-		const el = createMockElement();
-		const promise = adLad.showBannerAd(el);
+			const el = createMockElement();
+			const promise = adLad.showBannerAd(el);
 
-		await waitForMicrotasks();
-		assertSpyCalls(showBannerSpy, 0);
-		await assertPromiseResolved(promise, false);
+			await waitForMicrotasks();
+			assertSpyCalls(showBannerSpy, 0);
+			await assertPromiseResolved(promise, false);
 
-		await resolveInitialize();
-		assertSpyCalls(showBannerSpy, 1);
-		await assertPromiseResolved(promise, true);
-	},
-});
-
-Deno.test({
-	name: "Adds an id to the element when it doesn't have one",
-	fn() {
-		const { plugin, showBannerSpy } = createSpyPlugin();
-		const adLad = new AdLad([plugin]);
-		const el = createMockElement();
-
-		adLad.showBannerAd(el);
-
-		assertSpyCalls(showBannerSpy, 1);
-		assertEquals(showBannerSpy.calls[0].args[0].id, el.id);
+			await resolveInitialize();
+			assertSpyCalls(showBannerSpy, 1);
+			await assertPromiseResolved(promise, true);
+		});
 	},
 });
 
 Deno.test({
 	name: "Options are passed to the right plugin",
 	fn() {
-		const { plugin: rightPlugin, showBannerSpy: showBannerRightSpy } = createSpyPlugin({
-			name: "right-plugin",
-		});
-		const { plugin: wrongPlugin, showBannerSpy: showBannerWrongSpy } = createSpyPlugin({
-			name: "wrong-plugin",
-		});
-		const adLad = new AdLad([rightPlugin, wrongPlugin]);
-		const el = createMockElement();
+		runWithDom(() => {
+			const { plugin: rightPlugin, showBannerSpy: showBannerRightSpy } = createSpyPlugin({
+				name: "right-plugin",
+			});
+			const { plugin: wrongPlugin, showBannerSpy: showBannerWrongSpy } = createSpyPlugin({
+				name: "wrong-plugin",
+			});
+			const adLad = new AdLad([rightPlugin, wrongPlugin]);
+			const el = createMockElement();
 
-		adLad.showBannerAd(el, {
-			pluginOptions: {
-				"right-plugin": {
-					foo: "foo",
-					bar: "bar",
+			adLad.showBannerAd(el, {
+				pluginOptions: {
+					"right-plugin": {
+						foo: "foo",
+						bar: "bar",
+					},
+					"wrong-plugin": {
+						baz: "baz",
+					},
 				},
-				"wrong-plugin": {
-					baz: "baz",
-				},
-			},
-		});
+			});
 
-		assertSpyCalls(showBannerRightSpy, 1);
-		assertSpyCalls(showBannerWrongSpy, 0);
-		assertEquals(showBannerRightSpy.calls[0].args[1], {
-			foo: "foo",
-			bar: "bar",
+			assertSpyCalls(showBannerRightSpy, 1);
+			assertSpyCalls(showBannerWrongSpy, 0);
+			assertEquals(showBannerRightSpy.calls[0].args[1], {
+				foo: "foo",
+				bar: "bar",
+			});
 		});
 	},
 });

@@ -715,17 +715,19 @@ export class AdLad {
 		if (this._pluginInitializePromise) await this._pluginInitializePromise;
 
 		const rect = element.getBoundingClientRect();
-		if (!element.id) {
-			element.id = generateUuid();
-		}
+		const childEl = document.createElement("div");
+		element.appendChild(childEl);
+		childEl.id = generateUuid();
+		childEl.style.width = "100%";
+		childEl.style.height = "100%";
 
 		/** @type {Object.<string, any>} */
 		const pluginOptions = options.pluginOptions || {};
 		const userOptions = pluginOptions[this.activePlugin];
 
 		await this._plugin.showBannerAd({
-			el: element,
-			id: element.id,
+			el: childEl,
+			id: childEl.id,
 			width: rect.width,
 			height: rect.height,
 		}, userOptions);
