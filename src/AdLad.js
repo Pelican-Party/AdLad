@@ -431,6 +431,8 @@ export class AdLad {
 					return this._plugin.loadStop();
 				}
 			},
+			pluginName: this._plugin?.name || "",
+			stateName: "loading",
 		});
 
 		/** @private */
@@ -446,6 +448,8 @@ export class AdLad {
 					return this._plugin.gameplayStop();
 				}
 			},
+			pluginName: this._plugin?.name || "",
+			stateName: "gameplay start/stop",
 		});
 		/** @private */
 		this._lastGameplayStartCall = false;

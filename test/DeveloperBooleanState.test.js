@@ -1,5 +1,5 @@
-import { assertSpyCalls, spy } from "$std/testing/mock.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
+import { assertEquals, assertStrictEquals } from "$std/testing/asserts.ts";
 import { DeveloperBooleanState, filterStateQueue } from "../src/DeveloperBooleanState.js";
 import { assertPromiseResolved, waitForMicrotasks } from "./shared.js";
 
@@ -38,6 +38,8 @@ function booleanStateTest({
 		defaultPluginState,
 		trueCall: trueSpy,
 		falseCall: falseSpy,
+		pluginName: "plugin",
+		stateName: "statename",
 	});
 
 	return {
@@ -367,7 +369,7 @@ Deno.test({
  * @param {boolean[]} queue
  * @param {boolean[]} expectedQueue
  */
-function queStateTest(currentState, queue, expectedQueue) {
+function queueStateTest(currentState, queue, expectedQueue) {
 	Deno.test({
 		name: `filters the queue state correctly: current: ${currentState}, queue: ${queue.join(",")} -> ${
 			expectedQueue.join(",")
@@ -379,21 +381,117 @@ function queStateTest(currentState, queue, expectedQueue) {
 	});
 }
 
-queStateTest(true, [], []);
-queStateTest(false, [], []);
-queStateTest(false, [false], []);
-queStateTest(true, [true], []);
-queStateTest(true, [false], [false]);
-queStateTest(true, [false, false], [false]);
-queStateTest(true, [false, true], [false, true]);
-queStateTest(false, [true, false], [true, false]);
-queStateTest(false, [true, true], [true]);
-queStateTest(false, [false, true], [true]);
-queStateTest(false, [true, false, false], [true, false]);
+queueStateTest(true, [], []);
+queueStateTest(false, [], []);
+queueStateTest(false, [false], []);
+queueStateTest(true, [true], []);
+queueStateTest(true, [false], [false]);
+queueStateTest(true, [false, false], [false]);
+queueStateTest(true, [false, true], [false, true]);
+queueStateTest(false, [true, false], [true, false]);
+queueStateTest(false, [true, true], [true]);
+queueStateTest(false, [false, true], [true]);
+queueStateTest(false, [true, false, false], [true, false]);
 
-queStateTest(true, [false, true, false, true], [false, true]);
-queStateTest(true, [false, true, true, true, false], [false]);
-queStateTest(false, [true, false, true, false, true], [true]);
-queStateTest(false, [true, false, true, false], [true, false]);
-queStateTest(false, [true, true, true, true], [true]);
-queStateTest(false, [false, true, true, true], [true]);
+queueStateTest(true, [false, true, false, true], [false, true]);
+queueStateTest(true, [false, true, true, true, false], [false]);
+queueStateTest(false, [true, false, true, false, true], [true]);
+queueStateTest(false, [true, false, true, false], [true, false]);
+queueStateTest(false, [true, true, true, true], [true]);
+queueStateTest(false, [false, true, true, true], [true]);
+
+Deno.test({
+	name: "Errors thrown by true and false calls are caught",
+	async fn() {
+		const trueError = new Error("oh no true");
+		const falseError = new Error("oh no true");
+
+		const state = new DeveloperBooleanState({
+			trueCall() {
+				throw trueError;
+			},
+			falseCall() {
+				throw falseError;
+			},
+			stateName: "statename",
+			pluginName: "plugin-name",
+		});
+
+		const consoleErrorSpy = stub(console, "error");
+
+		try {
+			state.setState(true);
+			await waitForMicrotasks();
+
+			assertSpyCalls(consoleErrorSpy, 1);
+			assertSpyCall(consoleErrorSpy, 0, {
+				args: [
+					'An error occurred while trying to change the statename state of the "plugin-name" plugin:',
+					trueError,
+				],
+			});
+			assertStrictEquals(consoleErrorSpy.calls[0].args[1], trueError);
+			state.setState(false);
+			await waitForMicrotasks();
+
+			assertSpyCalls(consoleErrorSpy, 2);
+			assertSpyCall(consoleErrorSpy, 1, {
+				args: [
+					'An error occurred while trying to change the statename state of the "plugin-name" plugin:',
+					falseError,
+				],
+			});
+			assertStrictEquals(consoleErrorSpy.calls[1].args[1], falseError);
+		} finally {
+			consoleErrorSpy.restore();
+		}
+	},
+});
+
+Deno.test({
+	name: "Promises rejected by true and false calls are caught",
+	async fn() {
+		const trueError = new Error("oh no true");
+		const falseError = new Error("oh no true");
+
+		const state = new DeveloperBooleanState({
+			async trueCall() {
+				throw trueError;
+			},
+			async falseCall() {
+				throw falseError;
+			},
+			stateName: "statename",
+			pluginName: "plugin-name",
+		});
+
+		const consoleErrorSpy = stub(console, "error");
+
+		try {
+			state.setState(true);
+			await waitForMicrotasks();
+
+			assertSpyCalls(consoleErrorSpy, 1);
+			assertSpyCall(consoleErrorSpy, 0, {
+				args: [
+					'An error occurred while trying to change the statename state of the "plugin-name" plugin:',
+					trueError,
+				],
+			});
+			assertStrictEquals(consoleErrorSpy.calls[0].args[1], trueError);
+			state.setState(false);
+			await waitForMicrotasks();
+
+			assertSpyCalls(consoleErrorSpy, 2);
+			assertSpyCall(consoleErrorSpy, 1, {
+				args: [
+					'An error occurred while trying to change the statename state of the "plugin-name" plugin:',
+					falseError,
+				],
+			});
+			assertStrictEquals(consoleErrorSpy.calls[1].args[1], falseError);
+		} finally {
+			consoleErrorSpy.restore();
+		}
+	},
+});

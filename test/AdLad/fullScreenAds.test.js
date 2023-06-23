@@ -299,45 +299,91 @@ Deno.test({
 	async fn() {
 		const consoleErrorSpy = stub(console, "error", () => {});
 
-		const error = new Error("oh no");
-		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
-		const plugin = {
-			name: "plugin-name",
-			showFullScreenAd() {
-				throw error;
-			},
-		};
+		try {
+			const error = new Error("oh no");
+			/** @type {import("../../src/AdLad.js").AdLadPlugin} */
+			const plugin = {
+				name: "plugin-name",
+				showFullScreenAd() {
+					throw error;
+				},
+			};
 
-		const adLad = new AdLad([plugin]);
+			const adLad = new AdLad([plugin]);
 
-		const unknownResults = [];
-		const notSupportedResults = [];
-		unknownResults.push(await adLad.showFullScreenAd());
-		notSupportedResults.push(await adLad.showRewardedAd());
-		unknownResults.push(await adLad.showFullScreenAd());
-		notSupportedResults.push(await adLad.showRewardedAd());
-		unknownResults.push(await adLad.showFullScreenAd());
-		notSupportedResults.push(await adLad.showRewardedAd());
+			const unknownResults = [];
+			const notSupportedResults = [];
+			unknownResults.push(await adLad.showFullScreenAd());
+			notSupportedResults.push(await adLad.showRewardedAd());
+			unknownResults.push(await adLad.showFullScreenAd());
+			notSupportedResults.push(await adLad.showRewardedAd());
+			unknownResults.push(await adLad.showFullScreenAd());
+			notSupportedResults.push(await adLad.showRewardedAd());
 
-		for (const result of unknownResults) {
-			assertEquals(result, {
-				didShowAd: false,
-				errorReason: "unknown",
+			for (const result of unknownResults) {
+				assertEquals(result, {
+					didShowAd: false,
+					errorReason: "unknown",
+				});
+			}
+			for (const result of notSupportedResults) {
+				assertEquals(result, {
+					didShowAd: false,
+					errorReason: "not-supported",
+				});
+			}
+
+			assertSpyCalls(consoleErrorSpy, 3);
+			assertSpyCall(consoleErrorSpy, 0, {
+				args: [
+					'An error occurred while trying to display an ad from the "plugin-name" plugin:',
+					error,
+				],
 			});
+		} finally {
+			consoleErrorSpy.restore();
 		}
-		for (const result of notSupportedResults) {
-			assertEquals(result, {
-				didShowAd: false,
-				errorReason: "not-supported",
-			});
-		}
+	},
+});
 
-		assertSpyCalls(consoleErrorSpy, 3);
-		assertSpyCall(consoleErrorSpy, 0, {
-			args: [
-				'An error occurred while trying to display an ad from the "plugin-name" plugin:',
-				error,
-			],
-		});
+Deno.test({
+	name: "Fires a second time even when setting the gameplaystart state fails",
+	async fn() {
+		const consoleErrorSpy = stub(console, "error");
+
+		try {
+			const error = new Error("oh no");
+			/** @type {import("../../src/AdLad.js").AdLadPlugin} */
+			const plugin = {
+				name: "plugin-name",
+				async showFullScreenAd() {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+				gameplayStart() {
+					throw error;
+				},
+			};
+
+			const adLad = new AdLad([plugin]);
+
+			adLad.gameplayStart();
+
+			const result1 = await adLad.showFullScreenAd();
+			assertEquals(result1, {
+				didShowAd: true,
+				errorReason: null,
+			});
+
+			const result2 = await adLad.showFullScreenAd();
+			assertEquals(result2, {
+				didShowAd: true,
+				errorReason: null,
+			});
+		} finally {
+			consoleErrorSpy.restore();
+		}
 	},
 });

@@ -14,6 +14,8 @@ export class DeveloperBooleanState {
 	 * @param {Promise<void>?} [options.pluginInitializePromise]
 	 * @param {() => Promise<void> | void} options.trueCall
 	 * @param {() => Promise<void> | void} options.falseCall
+	 * @param {string} options.stateName Used for error messages.
+	 * @param {string} options.pluginName Used for error messages.
 	 */
 	constructor({
 		defaultState = false,
@@ -21,6 +23,8 @@ export class DeveloperBooleanState {
 		pluginInitializePromise = null,
 		trueCall,
 		falseCall,
+		stateName,
+		pluginName,
 	}) {
 		/** @private */
 		this.pluginInitializePromise = pluginInitializePromise;
@@ -30,6 +34,10 @@ export class DeveloperBooleanState {
 		this.trueCall = trueCall;
 		/** @private */
 		this.falseCall = falseCall;
+		/** @private */
+		this.stateName = stateName;
+		/** @private */
+		this.pluginName = pluginName;
 		/**
 		 * @private
 		 * The gameplay start state that was last reported to the plugin.
@@ -86,7 +94,17 @@ export class DeveloperBooleanState {
 		if (this.stateQueue.length > 0) {
 			const newState = /** @type {boolean} */ (this.stateQueue.shift());
 			const fn = newState ? this.trueCall : this.falseCall;
-			this.lastSentStatePromise = fn() || Promise.resolve();
+			this.lastSentStatePromise = (async () => {
+				try {
+					const promise = fn() || Promise.resolve();
+					await promise;
+				} catch (e) {
+					console.error(
+						`An error occurred while trying to change the ${this.stateName} state of the "${this.pluginName}" plugin:`,
+						e,
+					);
+				}
+			})();
 			this.lastSentState = newState;
 			this.updateState();
 		} else {

@@ -1,5 +1,5 @@
-import { assertEquals } from "$std/testing/asserts.ts";
-import { assertSpyCalls, spy } from "$std/testing/mock.ts";
+import { assertEquals, assertStrictEquals } from "$std/testing/asserts.ts";
+import { assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
 import { initializingPluginTest, waitForMicrotasks } from "../shared.js";
 
@@ -272,5 +272,47 @@ Deno.test({
 			"fullScreenAd finish",
 			"start",
 		]);
+	},
+});
+
+Deno.test({
+	name: "Errors from the plugin are caught",
+	async fn() {
+		const trueError = new Error("oh no true");
+		const falseError = new Error("oh no true");
+		/** @type {import("../../src/AdLad.js").AdLadPlugin} */
+		const plugin = {
+			name: "plugin",
+			gameplayStart() {
+				throw trueError;
+			},
+			async gameplayStop() {
+				throw falseError;
+			},
+		};
+		const adLad = new AdLad([plugin]);
+
+		const consoleErrorSpy = stub(console, "error");
+		try {
+			adLad.gameplayStart();
+			await waitForMicrotasks();
+
+			adLad.gameplayStop();
+			await waitForMicrotasks();
+
+			assertSpyCalls(consoleErrorSpy, 2);
+			assertEquals(
+				consoleErrorSpy.calls[0].args[0],
+				'An error occurred while trying to change the gameplay start/stop state of the "plugin" plugin:',
+			);
+			assertStrictEquals(consoleErrorSpy.calls[0].args[1], trueError);
+			assertEquals(
+				consoleErrorSpy.calls[1].args[0],
+				'An error occurred while trying to change the gameplay start/stop state of the "plugin" plugin:',
+			);
+			assertStrictEquals(consoleErrorSpy.calls[1].args[1], falseError);
+		} finally {
+			consoleErrorSpy.restore();
+		}
 	},
 });
