@@ -51,6 +51,12 @@ import { generateUuid } from "./util.js";
  */
 
 /**
+ * @typedef DestroyBannerAdPluginOptions
+ * @property {HTMLElement} el
+ * @property {string} id
+ */
+
+/**
  * @typedef AdLadPlugin
  * @property {string} name The name of your plugin, may only contain lowercase `a-z`, `_` or `-`. May not start or end with `_` or `-`.
  * @property {() => boolean} [shouldBeActive] While it is recommended to users to manually choose a plugin either
@@ -76,6 +82,8 @@ import { generateUuid } from "./util.js";
  * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
  * @property {(options: ShowBannerAdPluginOptions, userOptions: any) => void | Promise<void>} [showBannerAd] Hook that gets called when the user wishes
  * to show a banner ad.
+ * @property {(options: DestroyBannerAdPluginOptions, userOptions: any) => void | Promise<void>} [destroyBannerAd] Hook that gets called when the user wishes
+ * to destroy a banner ad.
  *
  * @property {() => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
  * This will never be called twice in a row without `gameplayStop` being called first, except when the game starts for the first time.
@@ -752,6 +760,40 @@ export class AdLad {
 			width: rect.width,
 			height: rect.height,
 		}, userOptions);
+	}
+
+	/**
+	 * @param {HTMLElement | string} element
+	 * @param {Object} options
+	 * @param {CollectPluginArgs<TPlugins, "destroyBannerAd", 1>} [options.pluginOptions]
+	 */
+	async destroyBannerAd(element, options = {}) {
+		if (typeof element == "string") {
+			const el = document.getElementById(element);
+			if (!el) {
+				throw new Error(`Element with id "${element}" was not found.`);
+			}
+			element = el;
+		}
+		if (!this._plugin || !this.activePlugin || !this._plugin.destroyBannerAd) return;
+		if (this._pluginInitializePromise) await this._pluginInitializePromise;
+
+		const childEl = element.children[0];
+		if (!(childEl instanceof HTMLElement)) {
+			// Ad was likely already destroyed.
+			return;
+		}
+
+		/** @type {Object.<string, any>} */
+		const pluginOptions = options.pluginOptions || {};
+		const userOptions = pluginOptions[this.activePlugin];
+
+		await this._plugin.destroyBannerAd({
+			el: childEl,
+			id: childEl.id,
+		}, userOptions);
+
+		element.removeChild(childEl);
 	}
 
 	/**

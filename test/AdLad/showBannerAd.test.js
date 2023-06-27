@@ -1,5 +1,5 @@
 import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals, assertRejects } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
 import {
 	assertPromiseResolved,
@@ -9,7 +9,22 @@ import {
 	waitForMicrotasks,
 } from "../shared.js";
 import { HtmlElement } from "$fake-dom/FakeHtmlElement.js";
-import { runWithDom, runWithDomAsync } from "$fake-dom/FakeDocument.js";
+import { runWithDomAsync } from "$fake-dom/FakeDocument.js";
+
+/**
+ * @param {() => Promise<void>} fn
+ */
+async function runWithDomAndElementAsync(fn) {
+	await runWithDomAsync(async () => {
+		const oldHtmlElement = globalThis.HTMLElement;
+		globalThis.HTMLElement = HtmlElement;
+		try {
+			await fn();
+		} finally {
+			globalThis.HTMLElement = oldHtmlElement;
+		}
+	});
+}
 
 function createMockElement({
 	width = 300,
@@ -33,6 +48,7 @@ Deno.test({
 
 		const el = createMockElement();
 		adLad.showBannerAd(el);
+		adLad.destroyBannerAd(el);
 	},
 });
 
@@ -52,6 +68,7 @@ Deno.test({
 
 		const el = createMockElement();
 		adLad.showBannerAd(el);
+		adLad.destroyBannerAd(el);
 	},
 });
 
@@ -62,10 +79,12 @@ function createSpyPlugin({
 	const plugin = {
 		name,
 		showBannerAd() {},
+		destroyBannerAd() {},
 	};
 	const castPlugin = /** @type {Required<import("../../src/AdLad.js").AdLadPlugin>} */ (plugin);
 	const showBannerSpy = spy(castPlugin, "showBannerAd");
-	return { plugin, showBannerSpy };
+	const destroyBannerSpy = spy(castPlugin, "destroyBannerAd");
+	return { plugin, showBannerSpy, destroyBannerSpy };
 }
 
 Deno.test({
@@ -92,25 +111,88 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Passes the request on to the plugin with a newly created element and id",
-	fn() {
-		runWithDom(() => {
-			const { plugin, showBannerSpy } = createSpyPlugin();
+	name: "Passes showBannerAd and destroyBannerAd requests on and creates/destroys a child element",
+	async fn() {
+		await runWithDomAndElementAsync(async () => {
+			const { plugin, showBannerSpy, destroyBannerSpy } = createSpyPlugin();
 			const adLad = new AdLad([plugin]);
-			const id = "the_element_id";
-			const el = createMockElement({ id });
+			const elementId = "the_element_id";
+			const el = createMockElement({ id: elementId });
 
-			adLad.showBannerAd(el);
+			const oldGetElementById = document.getElementById;
+			document.getElementById = (id) => {
+				if (id == elementId) {
+					return el;
+				}
+				return null;
+			};
 
-			assertSpyCalls(showBannerSpy, 1);
-			const childEl = showBannerSpy.calls[0].args[0].el;
-			assertEquals(showBannerSpy.calls[0].args[0].id, childEl.id);
-			assertEquals(showBannerSpy.calls[0].args[0].width, 300);
-			assertEquals(showBannerSpy.calls[0].args[0].height, 200);
-			assertEquals(showBannerSpy.calls[0].args[1], undefined);
+			try {
+				await adLad.showBannerAd(el);
 
-			assertEquals(childEl.style.width, "100%");
-			assertEquals(childEl.style.height, "100%");
+				assertSpyCalls(destroyBannerSpy, 0);
+				assertSpyCalls(showBannerSpy, 1);
+				const childEl = showBannerSpy.calls[0].args[0].el;
+				assertEquals(showBannerSpy.calls[0].args[0].id, childEl.id);
+				assertEquals(showBannerSpy.calls[0].args[0].width, 300);
+				assertEquals(showBannerSpy.calls[0].args[0].height, 200);
+				assertEquals(showBannerSpy.calls[0].args[1], undefined);
+
+				assertEquals(childEl.style.width, "100%");
+				assertEquals(childEl.style.height, "100%");
+
+				await adLad.destroyBannerAd(el);
+
+				assertEquals(el.children.length, 0);
+				assertSpyCalls(showBannerSpy, 1);
+				assertSpyCalls(destroyBannerSpy, 1);
+
+				// Same thing but by id
+				await adLad.showBannerAd(elementId);
+
+				assertEquals(el.children.length, 1);
+				assertSpyCalls(showBannerSpy, 2);
+				assertSpyCalls(destroyBannerSpy, 1);
+
+				await adLad.destroyBannerAd(elementId);
+
+				assertEquals(el.children.length, 0);
+				assertSpyCalls(showBannerSpy, 2);
+				assertSpyCalls(destroyBannerSpy, 2);
+			} finally {
+				document.getElementById = oldGetElementById;
+			}
+		});
+	},
+});
+
+Deno.test({
+	name: "showBannerAd and destroyBannerAd throw when passing non existent id",
+	async fn() {
+		await runWithDomAsync(async () => {
+			const oldGetElementById = document.getElementById;
+			document.getElementById = (_id) => null;
+			try {
+				const { plugin } = createSpyPlugin();
+				const adLad = new AdLad([plugin]);
+
+				await assertRejects(
+					async () => {
+						await adLad.showBannerAd("non existent");
+					},
+					Error,
+					'Element with id "non existent" was not found.',
+				);
+				await assertRejects(
+					async () => {
+						await adLad.destroyBannerAd("non existent");
+					},
+					Error,
+					'Element with id "non existent" was not found.',
+				);
+			} finally {
+				document.getElementById = oldGetElementById;
+			}
 		});
 	},
 });
@@ -118,34 +200,41 @@ Deno.test({
 Deno.test({
 	name: "Doesn't fire on plugin until it has been initialized",
 	async fn() {
-		await runWithDomAsync(async () => {
-			const { plugin, showBannerSpy } = createSpyPlugin();
+		await runWithDomAndElementAsync(async () => {
+			const { plugin, showBannerSpy, destroyBannerSpy } = createSpyPlugin();
 			const { adLad, resolveInitialize } = initializingPluginTest(plugin);
 
 			const el = createMockElement();
-			const promise = adLad.showBannerAd(el);
+			const promise1 = adLad.showBannerAd(el);
+			const promise2 = adLad.destroyBannerAd(el);
 
 			await waitForMicrotasks();
 			assertSpyCalls(showBannerSpy, 0);
-			await assertPromiseResolved(promise, false);
+			assertSpyCalls(destroyBannerSpy, 0);
+			await assertPromiseResolved(promise1, false);
+			await assertPromiseResolved(promise2, false);
 
 			await resolveInitialize();
 			assertSpyCalls(showBannerSpy, 1);
-			await assertPromiseResolved(promise, true);
+			assertSpyCalls(destroyBannerSpy, 1);
+			await assertPromiseResolved(promise1, true);
+			await assertPromiseResolved(promise2, true);
 		});
 	},
 });
 
 Deno.test({
 	name: "Options are passed to the right plugin",
-	fn() {
-		runWithDom(() => {
-			const { plugin: rightPlugin, showBannerSpy: showBannerRightSpy } = createSpyPlugin({
-				name: "right-plugin",
-			});
-			const { plugin: wrongPlugin, showBannerSpy: showBannerWrongSpy } = createSpyPlugin({
-				name: "wrong-plugin",
-			});
+	async fn() {
+		await runWithDomAndElementAsync(async () => {
+			const { plugin: rightPlugin, showBannerSpy: showBannerRightSpy, destroyBannerSpy: destroyBannerRightSpy } =
+				createSpyPlugin({
+					name: "right-plugin",
+				});
+			const { plugin: wrongPlugin, showBannerSpy: showBannerWrongSpy, destroyBannerSpy: destroyBannerWrongSpy } =
+				createSpyPlugin({
+					name: "wrong-plugin",
+				});
 			const adLad = new AdLad([rightPlugin, wrongPlugin]);
 			const el = createMockElement();
 
@@ -167,6 +256,25 @@ Deno.test({
 				foo: "foo",
 				bar: "bar",
 			});
+
+			adLad.destroyBannerAd(el, {
+				pluginOptions: {
+					"right-plugin": {
+						foo: "foo",
+						bar: "bar",
+					},
+					"wrong-plugin": {
+						baz: "baz",
+					},
+				},
+			});
+
+			assertSpyCalls(destroyBannerRightSpy, 1);
+			assertSpyCalls(destroyBannerWrongSpy, 0);
+			assertEquals(destroyBannerRightSpy.calls[0].args[1], {
+				foo: "foo",
+				bar: "bar",
+			});
 		});
 	},
 });
@@ -183,6 +291,13 @@ testTypes({
 			 * @param {number} _userOpts.bar
 			 */
 			showBannerAd(_opts, _userOpts) {},
+			/**
+			 * @param {import("../../src/AdLad.js").DestroyBannerAdPluginOptions} _opts
+			 * @param {Object} _userOpts
+			 * @param {string} _userOpts.foo
+			 * @param {number} _userOpts.bar
+			 */
+			destroyBannerAd(_opts, _userOpts) {},
 		});
 
 		const pluginB = /** @type {const} */ ({
@@ -193,6 +308,12 @@ testTypes({
 			 * @param {boolean} _userOpts.baz
 			 */
 			showBannerAd(_opts, _userOpts) {},
+			/**
+			 * @param {import("../../src/AdLad.js").DestroyBannerAdPluginOptions} _opts
+			 * @param {Object} _userOpts
+			 * @param {boolean} _userOpts.baz
+			 */
+			destroyBannerAd(_opts, _userOpts) {},
 		});
 
 		const pluginC = /** @type {const} */ ({
@@ -205,6 +326,10 @@ testTypes({
 			 * @param {import("../../src/AdLad.js").ShowBannerAdPluginOptions} _opts
 			 */
 			showBannerAd(_opts) {},
+			/**
+			 * @param {import("../../src/AdLad.js").DestroyBannerAdPluginOptions} _opts
+			 */
+			destroyBannerAd(_opts) {},
 		});
 
 		const adLad = new AdLad({
@@ -223,8 +348,34 @@ testTypes({
 				},
 			},
 		});
+		adLad.destroyBannerAd(el, {
+			pluginOptions: {
+				"plugin-a": {
+					foo: "str",
+					bar: 23,
+				},
+				"plugin-b": {
+					baz: true,
+				},
+			},
+		});
 
 		adLad.showBannerAd(el, {
+			pluginOptions: {
+				"plugin-a": {
+					foo: "str",
+					bar: 23,
+					// @ts-expect-error It should only allow known properties
+					nonExistent: true,
+				},
+				"plugin-b": {
+					baz: true,
+					// @ts-expect-error It should only allow known properties
+					nonExistent: true,
+				},
+			},
+		});
+		adLad.destroyBannerAd(el, {
 			pluginOptions: {
 				"plugin-a": {
 					foo: "str",
@@ -251,8 +402,23 @@ testTypes({
 				},
 			},
 		});
+		adLad.destroyBannerAd(el, {
+			pluginOptions: {
+				// @ts-expect-error It should enforce use of all required properties (bar is missing)
+				"plugin-a": {
+					foo: "str",
+				},
+				"plugin-b": {
+					baz: true,
+				},
+			},
+		});
 
 		adLad.showBannerAd(el, {
+			// @ts-expect-error It should emit when a plugin that requires options is missing.
+			pluginOptions: {},
+		});
+		adLad.destroyBannerAd(el, {
 			// @ts-expect-error It should emit when a plugin that requires options is missing.
 			pluginOptions: {},
 		});
@@ -260,5 +426,7 @@ testTypes({
 		// TODO: In the future we might want to emit when the options object is missing as well.
 		adLad.showBannerAd(el);
 		adLad.showBannerAd(el, {});
+		adLad.destroyBannerAd(el);
+		adLad.destroyBannerAd(el, {});
 	},
 });
