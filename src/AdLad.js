@@ -38,6 +38,8 @@ import { generateUuid } from "./util.js";
  * Requires {@linkcode AdLadPlugin.showRewardedAd} to be implemented, otherwise this has no effect.
  * By default `canShowRewardedAd` is true when `showRewardedAd` is implemented,
  * so if you want this to be false from the start, make sure to call this within your initialize hook.
+ *
+ * @property {(src: string) => Promise<void>} loadScriptTag Adds a script tag to the page and returns a promise that resolves once the script tag has loaded.
  */
 
 /**
@@ -385,6 +387,21 @@ export class AdLad {
 							setCanShowRewardedAd: (canShowRewardedAd) => {
 								canShowRewardedAdAdjusted = true;
 								this._canShowRewardedAdState.setValue(canShowRewardedAd);
+							},
+							loadScriptTag(src) {
+								const script = document.createElement("script");
+								script.src = src;
+								document.body.appendChild(script);
+								/** @type {Promise<void>} */
+								const promise = new Promise((resolve, reject) => {
+									script.addEventListener("load", () => {
+										resolve();
+									});
+									script.addEventListener("error", (e) => {
+										reject(e.error);
+									});
+								});
+								return promise;
 							},
 						});
 					} catch (e) {
