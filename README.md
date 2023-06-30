@@ -8,6 +8,24 @@ AdLad allows you to easily integrate ads for your games without the need for dif
 publisher. Instead, you can configure which plugins you would like to use, and whenever you want to show an ad, AdLad
 will forward your request to the plugin that is currently active.
 
+## List of available plugins
+
+- [adlad-plugin-crazygames](https://github.com/Pelican-Party/adlad-plugin-crazygames) for
+  [crazygames.com](https://www.crazygames.com/)
+- [adlad-plugin-poki](https://github.com/Pelican-Party/adlad-plugin-poki) for [poki.com](https://poki.com/)
+- [adlad-plugin-gamedistribution](https://github.com/Pelican-Party/adlad-plugin-gamedistribution) for
+  [gamedistribution.com](https://gamedistribution.com/sdk/html5)
+- [adlad-plugin-gamemonetize](https://github.com/Pelican-Party/adlad-plugin-gamemonetize) for
+  [gamemonetize.com](https://gamemonetize.com/)
+- [adlad-plugin-gamepix](https://github.com/Pelican-Party/adlad-plugin-gamepix) for
+  [gamepix.com](https://www.gamepix.com/)
+- [adlad-plugin-google-ad-placement](https://github.com/Pelican-Party/adlad-plugin-google-ad-placement) for the
+  [AdSense Ad Placement API](https://developers.google.com/ad-placement/apis)
+- [adlad-plugin-google-ad-placement](https://github.com/Pelican-Party/adlad-plugin-google-ad-placement) for the
+  [AdSense Ad Placement API](https://developers.google.com/ad-placement/apis)
+- [adlad-plugin-coolmathgames](https://github.com/Pelican-Party/adlad-plugin-coolmathgames) for
+  [coolmathgames.com](https://www.coolmathgames.com/)
+
 ## Usage
 
 To quickly get started, you can use jsdelivr.com to import AdLad:
@@ -97,17 +115,3 @@ const adLad = new AdLad({
 Alternatively, you can use the `?adlad=my-cool-plugin` query string. This is useful when you want to host your own page,
 while still allowing gaming portals to use a specific plugin. You can simply provide each gaming portal with a different
 url.
-
-## List of supported plugins
-
-- [adlad-plugin-crazygames](https://github.com/Pelican-Party/adlad-plugin-crazygames) for
-  [crazygames.com](https://www.crazygames.com/)
-- [adlad-plugin-poki](https://github.com/Pelican-Party/adlad-plugin-poki) for [poki.com](https://poki.com/)
-- [adlad-plugin-gamedistribution](https://github.com/Pelican-Party/adlad-plugin-gamedistribution) for
-  [gamedistribution.com](https://gamedistribution.com/sdk/html5)
-- [adlad-plugin-gamemonetize](https://github.com/Pelican-Party/adlad-plugin-gamemonetize) for
-  [gamemonetize.com](https://gamemonetize.com/)
-- [adlad-plugin-gamepix](https://github.com/Pelican-Party/adlad-plugin-gamepix) for
-  [gamepix.com](https://www.gamepix.com/)
-- [adlad-plugin-google-ad-placement](https://github.com/Pelican-Party/adlad-plugin-google-ad-placement) for the
-  [AdSense Ad Placement API](https://developers.google.com/ad-placement/apis)
