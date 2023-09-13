@@ -10,6 +10,7 @@ will forward your request to the plugin that is currently active.
 
 ## List of available plugins
 
+- [adlad-plugin-dummy](https://github.com/Pelican-Party/adlad-plugin-dummy) for test ads during development.
 - [adlad-plugin-crazygames](https://github.com/Pelican-Party/adlad-plugin-crazygames) for
   [crazygames.com](https://www.crazygames.com/)
 - [adlad-plugin-poki](https://github.com/Pelican-Party/adlad-plugin-poki) for [poki.com](https://poki.com/)
@@ -19,8 +20,6 @@ will forward your request to the plugin that is currently active.
   [gamemonetize.com](https://gamemonetize.com/)
 - [adlad-plugin-gamepix](https://github.com/Pelican-Party/adlad-plugin-gamepix) for
   [gamepix.com](https://www.gamepix.com/)
-- [adlad-plugin-google-ad-placement](https://github.com/Pelican-Party/adlad-plugin-google-ad-placement) for the
-  [AdSense Ad Placement API](https://developers.google.com/ad-placement/apis)
 - [adlad-plugin-google-ad-placement](https://github.com/Pelican-Party/adlad-plugin-google-ad-placement) for the
   [AdSense Ad Placement API](https://developers.google.com/ad-placement/apis)
 - [adlad-plugin-coolmathgames](https://github.com/Pelican-Party/adlad-plugin-coolmathgames) for
@@ -115,3 +114,63 @@ const adLad = new AdLad({
 Alternatively, you can use the `?adlad=my-cool-plugin` query string. This is useful when you want to host your own page,
 while still allowing gaming portals to use a specific plugin. You can simply provide each gaming portal with a different
 url.
+
+## Tree shaking unused plugins
+
+If you make separate builds for each publisher, you can conditionally include plugins based on build flags. That way,
+unnecessary code is excluded from your build.
+
+Ultimately, the best way to do this depends on your build pipeline. But let's assume you use something like
+[Rollup](https://rollupjs.org/) and [`@rollup/plugin-replace`](https://www.npmjs.com/package/@rollup/plugin-replace).
+
+In your build script you can configure the rollup plugin like so:
+
+```js
+replace({
+	values: {
+		DEBUG_BUILD: String(debug),
+		PUBLISHER_BUILD: `'${publisher}'`,
+	},
+	preventAssignment: true,
+});
+```
+
+Where `debug` and `publisher` are variables in your script set by a commandline flag for instance.
+
+Then in your client code you can do something like this:
+
+```js
+// Use a local import path which points to your node_modules,
+// or use an import map if necessary.
+import { AdLad } from "https://cdn.jsdelivr.net/npm/@adlad/adlad/mod.min.js";
+import { dummyPlugin } from "https://cdn.jsdelivr.net/npm/@adlad/plugin-dummy/mod.js";
+import { somePublisherPlugin } from "./path/to/publisher/plugin.js";
+
+// Declare the same global variables.
+// This is only required if you want to be able to run this script without a build step.
+globalThis.DEBUG_BUILD = true;
+globalThis.PUBLISHER_BUILD = "none";
+
+let plugins = [];
+let plugin = "none";
+
+if (DEBUG_BUILD) {
+	plugins.push(dummyPlugin());
+	plugin = "dummy";
+}
+
+if (PUBLISHER_BUILD == "somepublisher") {
+	plugins.push(somePublisherPlugin());
+	plugin = "some-publisher";
+}
+
+const adLad = new AdLad({
+	plugins,
+	plugin,
+});
+
+console.log(adLad.activePlugin); // Should print "dummy" or "some-publisher" based on your build flags.
+```
+
+Now if your build pipeline is configured correctly, it will tree shake these plugins depending on the configured
+`DEBUG_BUILD` and `PUBLISHER_BUILD` values.
