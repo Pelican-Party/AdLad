@@ -487,7 +487,7 @@ export class AdLad {
 
 		this.gameplayStart = /** @type {CreatePluginCallSignature<"gameplayStart", boolean>} */ ((options) => {
 			this._lastGameplayStartState = true;
-			if (options && this.activePlugin && options.hasOwnProperty(this.activePlugin)) {
+			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
 				const castOptions = /** @type {Object.<string, unknown>} */ (options);
 				this._lastGameplayStartCallArgs = [castOptions[this.activePlugin]];
 			} else {
@@ -498,7 +498,7 @@ export class AdLad {
 
 		this.gameplayStop = /** @type {CreatePluginCallSignature<"gameplayStop", boolean>} */ ((options) => {
 			this._lastGameplayStartState = false;
-			if (options && this.activePlugin && options.hasOwnProperty(this.activePlugin)) {
+			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
 				const castOptions = /** @type {Object.<string, unknown>} */ (options);
 				this._lastGameplayStopCallArgs = [castOptions[this.activePlugin]];
 			} else {
