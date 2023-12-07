@@ -85,9 +85,9 @@ import { generateUuid } from "./util.js";
  * @property {(options: DestroyBannerAdPluginOptions, userOptions: any) => void | Promise<void>} [destroyBannerAd] Hook that gets called when the user wishes
  * to destroy a banner ad.
  *
- * @property {() => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
+ * @property {(options: any) => void | Promise<void>} [gameplayStart] Hook that gets called when gameplay has started.
  * This will never be called twice in a row without `gameplayStop` being called first, except when the game starts for the first time.
- * @property {() => void | Promise<void>} [gameplayStop] Hook that gets called when gameplay has stopped.
+ * @property {(options: any) => void | Promise<void>} [gameplayStop] Hook that gets called when gameplay has stopped.
  * This will never be called twice in a row without `gameplayStop` being called first.
  * @property {() => void | Promise<void>} [loadStart] Hook that gets called when loading has started.
  * This is called automatically once your `initialize` hook promise resolves.
@@ -235,7 +235,7 @@ export class AdLad {
 	 * - First, every plugin can self report to AdLad whether it wishes to be active.
 	 * Most plugins always want to be active,
 	 * but some plugins can be configured to only be active depending on the domain the page is embedded on.
-	 * If multiple plugins wish to be active, the last plugin from the provided list will be picked.
+	 * If multiple plugins wish to be active, the first plugin from the provided list will be picked.
 	 * This allows you to set a priority each plugin.
 	 * - Secondly, you can pick a plugin using the `plugin` option.
 	 * This will override the priority list, and the request for plugins to be active or not will be ignored.
@@ -465,19 +465,47 @@ export class AdLad {
 			pluginInitializePromise: this._pluginInitializePromise,
 			trueCall: () => {
 				if (this._plugin && this._plugin.gameplayStart) {
-					return this._plugin.gameplayStart();
+					const castArgs = /** @type {[unknown]} */ (this._lastGameplayStartCallArgs);
+					return this._plugin.gameplayStart(...castArgs);
 				}
 			},
 			falseCall: () => {
 				if (this._plugin && this._plugin.gameplayStop) {
-					return this._plugin.gameplayStop();
+					const castArgs = /** @type {[unknown]} */ (this._lastGameplayStopCallArgs);
+					return this._plugin.gameplayStop(...castArgs);
 				}
 			},
 			pluginName: this._plugin?.name || "",
 			stateName: "gameplay start/stop",
 		});
 		/** @private */
-		this._lastGameplayStartCall = false;
+		this._lastGameplayStartState = false;
+		/** @private @type {[unknown] | []} */
+		this._lastGameplayStartCallArgs = [];
+		/** @private @type {[unknown] | []} */
+		this._lastGameplayStopCallArgs = [];
+
+		this.gameplayStart = /** @type {CreatePluginCallSignature<"gameplayStart", boolean>} */ ((options) => {
+			this._lastGameplayStartState = true;
+			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
+				const castOptions = /** @type {Object.<string, unknown>} */ (options);
+				this._lastGameplayStartCallArgs = [castOptions[this.activePlugin]];
+			} else {
+				this._lastGameplayStartCallArgs = [];
+			}
+			this._updateGameplayStartState();
+		});
+
+		this.gameplayStop = /** @type {CreatePluginCallSignature<"gameplayStop", boolean>} */ ((options) => {
+			this._lastGameplayStartState = false;
+			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
+				const castOptions = /** @type {Object.<string, unknown>} */ (options);
+				this._lastGameplayStopCallArgs = [castOptions[this.activePlugin]];
+			} else {
+				this._lastGameplayStopCallArgs = [];
+			}
+			this._updateGameplayStartState();
+		});
 	}
 
 	/**
@@ -489,21 +517,23 @@ export class AdLad {
 	}
 
 	/**
+	 * Creates a signature that either takes a single parameter, when one of the plugins also takes a parameter.
+	 * Or no parameter at all when none of the plugins do.
+	 * @template {keyof AdLadPlugin} T
+	 * @template TReturn
+	 * @typedef {CollectPluginArgs<TPlugins, T, 0> extends infer TOptions ?
+	 * 	TOptions extends Record<string, never> ?
+	 * 		() => TReturn :
+	 * 		(options: TOptions) => TReturn :
+	 * 	never} CreatePluginCallSignature
+	 */
+
+	/**
 	 * @private
 	 */
 	async _updateGameplayStartState() {
-		this._gameplayStartState.setState(this._lastGameplayStartCall && !this._isShowingAd);
+		this._gameplayStartState.setState(this._lastGameplayStartState && !this._isShowingAd);
 		await this._gameplayStartState.waitForEmptyQueue();
-	}
-
-	gameplayStart() {
-		this._lastGameplayStartCall = true;
-		this._updateGameplayStartState();
-	}
-
-	gameplayStop() {
-		this._lastGameplayStartCall = false;
-		this._updateGameplayStartState();
 	}
 
 	loadStart() {

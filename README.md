@@ -24,7 +24,8 @@ will forward your request to the plugin that is currently active.
   [AdSense Ad Placement API](https://developers.google.com/ad-placement/apis)
 - [adlad-plugin-coolmathgames](https://github.com/Pelican-Party/adlad-plugin-coolmathgames) for
   [coolmathgames.com](https://www.coolmathgames.com/)
-- [adlad-plugin-wgplayer](https://github.com/Pelican-Party/adlad-plugin-wgplayer) for [wgplayground.com](https://wgplayground.com)
+- [adlad-plugin-wgplayer](https://github.com/Pelican-Party/adlad-plugin-wgplayer) for
+  [wgplayground.com](https://wgplayground.com)
 
 ## Usage
 

@@ -1,5 +1,5 @@
 import { assertEquals, assertStrictEquals } from "$std/testing/asserts.ts";
-import { assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
+import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
 import { initializingPluginTest, waitForMicrotasks } from "../shared.js";
 
@@ -28,6 +28,11 @@ Deno.test({
 		adLad.gameplayStop();
 		adLad.gameplayStart();
 		adLad.gameplayStop();
+
+		// @ts-expect-error 'gameplayStart' is expected to take 0 parameters
+		adLad.gameplayStart({});
+		// @ts-expect-error 'gameplayStop' is expected to take 0 parameters
+		adLad.gameplayStop({});
 	},
 });
 
@@ -44,6 +49,11 @@ Deno.test({
 		adLad.gameplayStop();
 		adLad.gameplayStart();
 		adLad.gameplayStop();
+
+		// @ts-expect-error 'gameplayStart' is expected to take 0 parameters
+		adLad.gameplayStart({});
+		// @ts-expect-error 'gameplayStop' is expected to take 0 parameters
+		adLad.gameplayStop({});
 	},
 });
 
@@ -314,5 +324,232 @@ Deno.test({
 		} finally {
 			consoleErrorSpy.restore();
 		}
+	},
+});
+
+Deno.test({
+	name: "gameplayStart and gameplayStop parameters are passed to the plugin",
+	async fn() {
+		const plugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "myplugin",
+			/**
+			 * @param {Object} options
+			 * @param {number} options._foo
+			 * @param {string} options._bar
+			 */
+			gameplayStart({ _foo, _bar }) {},
+			/**
+			 * @param {Object} options
+			 * @param {number} options._foo
+			 * @param {string} options._bar
+			 */
+			gameplayStop({ _foo, _bar }) {},
+		});
+
+		const unusedPlugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "unused",
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			gameplayStart({ _baz }) {},
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			gameplayStop({ _baz }) {},
+		});
+
+		const pluginWithoutOptions = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "withoutoptions",
+			gameplayStart() {},
+			gameplayStop() {},
+		});
+
+		const pluginStartSpy = spy(plugin, "gameplayStart");
+		const unusedPluginStartSpy = spy(unusedPlugin, "gameplayStart");
+		const pluginWithoutOptionsStartSpy = spy(pluginWithoutOptions, "gameplayStart");
+		const pluginStopSpy = spy(plugin, "gameplayStop");
+		const unusedPluginStopSpy = spy(unusedPlugin, "gameplayStop");
+		const pluginWithoutOptionsStopSpy = spy(pluginWithoutOptions, "gameplayStop");
+
+		const adLad = new AdLad([plugin, unusedPlugin, pluginWithoutOptions]);
+		adLad.gameplayStart({
+			myplugin: {
+				_foo: 3,
+				_bar: "str",
+			},
+			unused: {
+				_baz: true,
+			},
+		});
+
+		await waitForMicrotasks();
+
+		assertSpyCalls(pluginStartSpy, 1);
+		assertSpyCalls(unusedPluginStartSpy, 0);
+		assertSpyCalls(pluginWithoutOptionsStartSpy, 0);
+		assertSpyCall(pluginStartSpy, 0, {
+			args: [{ _foo: 3, _bar: "str" }],
+		});
+
+		adLad.gameplayStop({
+			myplugin: {
+				_foo: 4,
+				_bar: "str2",
+			},
+			unused: {
+				_baz: false,
+			},
+		});
+
+		await waitForMicrotasks();
+
+		assertSpyCalls(pluginStopSpy, 1);
+		assertSpyCalls(unusedPluginStopSpy, 0);
+		assertSpyCalls(pluginWithoutOptionsStopSpy, 0);
+		assertSpyCall(pluginStopSpy, 0, {
+			args: [{ _foo: 4, _bar: "str2" }],
+		});
+
+		// @ts-expect-error gameplayStart should exect one parameter
+		adLad.gameplayStart();
+
+		adLad.gameplayStart({
+			// @ts-expect-error 'invalid' is not an expected plugin
+			invalid: {
+				_foo: 3,
+				_bar: "str",
+			},
+		});
+
+		// @ts-expect-error 'unused' plugin is missing
+		adLad.gameplayStart({
+			myplugin: {
+				_foo: 3,
+				_bar: "str",
+			},
+		});
+
+		adLad.gameplayStart({
+			myplugin: {
+				// @ts-expect-error '_foo' is a number
+				_foo: "not a string",
+				_bar: "str",
+			},
+			unused: {
+				_baz: true,
+			},
+		});
+	},
+});
+
+Deno.test({
+	name: "Plugins that don't take any parameters don't receive them",
+	async fn() {
+		const pluginA = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "plugina",
+			gameplayStart() {},
+			gameplayStop() {},
+			async showFullScreenAd() {
+				return {
+					didShowAd: true,
+					errorReason: null,
+				};
+			},
+			async showRewardedAd() {
+				return {
+					didShowAd: true,
+					errorReason: null,
+				};
+			},
+		});
+
+		// Add a second plugin to verify that parameter types behave as expected when one of the plugins
+		// doesn't have gameplayStart or gameplayStop implemented.
+		const pluginB = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "pluginb",
+		});
+
+		const startSpy = spy(pluginA, "gameplayStart");
+		const stopSpy = spy(pluginA, "gameplayStop");
+
+		const adLad = new AdLad([pluginA, pluginB]);
+
+		adLad.gameplayStart();
+		await waitForMicrotasks();
+		assertSpyCalls(startSpy, 1);
+		assertSpyCall(startSpy, 0, {
+			args: [],
+		});
+
+		adLad.gameplayStop();
+		await waitForMicrotasks();
+		assertSpyCalls(stopSpy, 1);
+		assertSpyCall(stopSpy, 0, {
+			args: [],
+		});
+
+		await adLad.showFullScreenAd();
+		await adLad.showRewardedAd();
+
+		// @ts-expect-error 'gameplayStart' is expected to take 0 parameters
+		adLad.gameplayStart({});
+		// @ts-expect-error 'gameplayStop' is expected to take 0 parameters
+		adLad.gameplayStop({});
+	},
+});
+
+Deno.test({
+	name: "Some plugins take arguments, but the active plugind doesn't",
+	async fn() {
+		const plugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "myplugin",
+			gameplayStart() {},
+			gameplayStop() {},
+		});
+
+		const unusedPlugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "unused",
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			gameplayStart({ _baz }) {},
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			gameplayStop({ _baz }) {},
+		});
+
+		const pluginStartSpy = spy(plugin, "gameplayStart");
+		const pluginStopSpy = spy(plugin, "gameplayStop");
+
+		const adLad = new AdLad([plugin, unusedPlugin]);
+		adLad.gameplayStart({
+			unused: {
+				_baz: true,
+			},
+		});
+
+		await waitForMicrotasks();
+		assertSpyCalls(pluginStartSpy, 1);
+		assertSpyCalls(pluginStopSpy, 0);
+		assertSpyCall(pluginStartSpy, 0, {
+			args: [],
+		});
+
+		adLad.gameplayStop({
+			unused: {
+				_baz: true,
+			},
+		});
+		await waitForMicrotasks();
+		assertSpyCalls(pluginStartSpy, 1);
+		assertSpyCalls(pluginStopSpy, 1);
+		assertSpyCall(pluginStopSpy, 0, {
+			args: [],
+		});
 	},
 });
