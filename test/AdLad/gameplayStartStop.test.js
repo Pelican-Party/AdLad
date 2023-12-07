@@ -334,30 +334,30 @@ Deno.test({
 			name: "myplugin",
 			/**
 			 * @param {Object} options
-			 * @param {number} options.foo
-			 * @param {string} options.bar
+			 * @param {number} options._foo
+			 * @param {string} options._bar
 			 */
-			gameplayStart({ foo, bar }) {},
+			gameplayStart({ _foo, _bar }) {},
 			/**
 			 * @param {Object} options
-			 * @param {number} options.foo
-			 * @param {string} options.bar
+			 * @param {number} options._foo
+			 * @param {string} options._bar
 			 */
-			gameplayStop({ foo, bar }) {},
+			gameplayStop({ _foo, _bar }) {},
 		});
 
 		const unusedPlugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
 			name: "unused",
 			/**
 			 * @param {Object} options
-			 * @param {boolean} options.baz
+			 * @param {boolean} options._baz
 			 */
-			gameplayStart({ baz }) {},
+			gameplayStart({ _baz }) {},
 			/**
 			 * @param {Object} options
-			 * @param {boolean} options.baz
+			 * @param {boolean} options._baz
 			 */
-			gameplayStop({ baz }) {},
+			gameplayStop({ _baz }) {},
 		});
 
 		const pluginWithoutOptions = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
@@ -376,11 +376,11 @@ Deno.test({
 		const adLad = new AdLad([plugin, unusedPlugin, pluginWithoutOptions]);
 		adLad.gameplayStart({
 			myplugin: {
-				foo: 3,
-				bar: "str",
+				_foo: 3,
+				_bar: "str",
 			},
 			unused: {
-				baz: true,
+				_baz: true,
 			},
 		});
 
@@ -390,16 +390,16 @@ Deno.test({
 		assertSpyCalls(unusedPluginStartSpy, 0);
 		assertSpyCalls(pluginWithoutOptionsStartSpy, 0);
 		assertSpyCall(pluginStartSpy, 0, {
-			args: [{ foo: 3, bar: "str" }],
+			args: [{ _foo: 3, _bar: "str" }],
 		});
 
 		adLad.gameplayStop({
 			myplugin: {
-				foo: 4,
-				bar: "str2",
+				_foo: 4,
+				_bar: "str2",
 			},
 			unused: {
-				baz: false,
+				_baz: false,
 			},
 		});
 
@@ -409,7 +409,7 @@ Deno.test({
 		assertSpyCalls(unusedPluginStopSpy, 0);
 		assertSpyCalls(pluginWithoutOptionsStopSpy, 0);
 		assertSpyCall(pluginStopSpy, 0, {
-			args: [{ foo: 4, bar: "str2" }],
+			args: [{ _foo: 4, _bar: "str2" }],
 		});
 
 		// @ts-expect-error gameplayStart should exect one parameter
@@ -418,27 +418,27 @@ Deno.test({
 		adLad.gameplayStart({
 			// @ts-expect-error 'invalid' is not an expected plugin
 			invalid: {
-				foo: 3,
-				bar: "str",
+				_foo: 3,
+				_bar: "str",
 			},
 		});
 
 		// @ts-expect-error 'unused' plugin is missing
 		adLad.gameplayStart({
 			myplugin: {
-				foo: 3,
-				bar: "str",
+				_foo: 3,
+				_bar: "str",
 			},
 		});
 
 		adLad.gameplayStart({
 			myplugin: {
-				// @ts-expect-error 'foo' is a number
-				foo: "not a string",
-				bar: "str",
+				// @ts-expect-error '_foo' is a number
+				_foo: "not a string",
+				_bar: "str",
 			},
 			unused: {
-				baz: true,
+				_baz: true,
 			},
 		});
 	},
@@ -513,14 +513,14 @@ Deno.test({
 			name: "unused",
 			/**
 			 * @param {Object} options
-			 * @param {boolean} options.baz
+			 * @param {boolean} options._baz
 			 */
-			gameplayStart({ baz }) {},
+			gameplayStart({ _baz }) {},
 			/**
 			 * @param {Object} options
-			 * @param {boolean} options.baz
+			 * @param {boolean} options._baz
 			 */
-			gameplayStop({ baz }) {},
+			gameplayStop({ _baz }) {},
 		});
 
 		const pluginStartSpy = spy(plugin, "gameplayStart");
@@ -529,7 +529,7 @@ Deno.test({
 		const adLad = new AdLad([plugin, unusedPlugin]);
 		adLad.gameplayStart({
 			unused: {
-				baz: true,
+				_baz: true,
 			},
 		});
 
@@ -542,7 +542,7 @@ Deno.test({
 
 		adLad.gameplayStop({
 			unused: {
-				baz: true,
+				_baz: true,
 			},
 		});
 		await waitForMicrotasks();
