@@ -70,12 +70,12 @@ import { generateUuid } from "./util.js";
  * But it's important to not leave the promise hanging indefinitely,
  * because this will cause calls by the user to stay hanging as well, potentially locking up the game forever.
  *
- * @property {() => Promise<ShowFullScreenAdResult>} [showFullScreenAd] Hook that gets called when the user
+ * @property {(userOptions: any) => Promise<ShowFullScreenAdResult>} [showFullScreenAd] Hook that gets called when the user
  * wants to show a full screen non rewarded ad. This should return a promise that resolves once the ad is no longer visible.
  * The return result should contain info about whether an ad was shown.
  * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
  * result will be sanitized in case you don't. If your hook rejects, `errorReason: "unknown"` is automatically returned.
- * @property {() => Promise<ShowFullScreenAdResult>} [showRewardedAd] Hook that gets called when the user
+ * @property {(userOptions: any) => Promise<ShowFullScreenAdResult>} [showRewardedAd] Hook that gets called when the user
  * wants to show a rewarded ad. This should return a promise that resolves once the ad is no longer visible.
  * The return result should contain info about whether an ad was shown.
  * You can check {@linkcode ShowFullScreenAdResult} to see which rules your result should abide. But your
@@ -604,10 +604,11 @@ export class AdLad {
 	/**
 	 * Helper function for showing full screen and rewarded ads.
 	 * @private
-	 * @param {(() => Promise<ShowFullScreenAdResult>) | undefined} showFn
+	 * @param {((userOptions: any) => Promise<ShowFullScreenAdResult>) | undefined} showFn
+	 * @param {Object.<string, any> | undefined} pluginOptions
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
-	async _showPluginFullScreenAd(showFn) {
+	async _showPluginFullScreenAd(showFn, pluginOptions = {}) {
 		if (this._isShowingAd) {
 			return {
 				didShowAd: false,
@@ -617,7 +618,7 @@ export class AdLad {
 		this._isShowingAd = true;
 		await this._updateGameplayStartState();
 		try {
-			if (!this._plugin) {
+			if (!this._plugin || !this.activePlugin) {
 				return {
 					didShowAd: false,
 					errorReason: "no-active-plugin",
@@ -633,8 +634,14 @@ export class AdLad {
 			if (this._pluginInitializePromise) await this._pluginInitializePromise;
 			if (!this._manualNeedsPause) this._needsPauseState.setValue(true);
 			if (!this._manualNeedsMute) this._needsMuteState.setValue(true);
+			/** @type {[unknown] | []} */
+			let showFnArgs = [];
+			if (pluginOptions && Object.prototype.hasOwnProperty.call(pluginOptions, this.activePlugin)) {
+				showFnArgs = [pluginOptions[this.activePlugin]];
+			}
 			try {
-				pluginResult = await showFn();
+				const castArgs = /** @type {[unknown]} */ (showFnArgs);
+				pluginResult = await showFn(...castArgs);
 			} catch (e) {
 				console.error(
 					`An error occurred while trying to display an ad from the "${this._plugin.name}" plugin:`,
@@ -685,12 +692,14 @@ export class AdLad {
 
 	/**
 	 * Waits for the plugin to initialize and shows a full screen ad once it's ready.
+	 * @param {Object} options
+	 * @param {CollectPluginArgs<TPlugins, "showFullScreenAd", 0>} [options.pluginOptions]
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
-	async showFullScreenAd() {
+	async showFullScreenAd(options = {}) {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showFullScreenAd;
-		return await this._showPluginFullScreenAd(showFn);
+		return await this._showPluginFullScreenAd(showFn, options.pluginOptions);
 	}
 
 	/**
@@ -722,12 +731,14 @@ export class AdLad {
 
 	/**
 	 * Waits for the plugin to initialize and shows a rewarded ad once it's ready.
+	 * @param {Object} options
+	 * @param {CollectPluginArgs<TPlugins, "showFullScreenAd", 0>} [options.pluginOptions]
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
-	async showRewardedAd() {
+	async showRewardedAd(options = {}) {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showRewardedAd;
-		return await this._showPluginFullScreenAd(showFn);
+		return await this._showPluginFullScreenAd(showFn, options.pluginOptions);
 	}
 
 	/**

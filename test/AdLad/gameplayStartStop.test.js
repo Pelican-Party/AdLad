@@ -501,7 +501,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: "Some plugins take arguments, but the active plugind doesn't",
+	name: "Some plugins take arguments, but the active plugin doesn't",
 	async fn() {
 		const plugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
 			name: "myplugin",

@@ -423,7 +423,7 @@ testTypes({
 			pluginOptions: {},
 		});
 
-		// TODO: In the future we might want to emit when the options object is missing as well.
+		// TODO #19 In the future we might want to emit when the options object is missing as well.
 		adLad.showBannerAd(el);
 		adLad.showBannerAd(el, {});
 		adLad.destroyBannerAd(el);
