@@ -1,6 +1,6 @@
 {
 	"name": "@adlad/adlad",
-	"version": "0.11.0",
+	"version": "0.12.0",
 	"description": "Ad sdks management for web games made easy.",
 	"main": "mod.js",
 	"types": "dist/AdLad.d.ts",
