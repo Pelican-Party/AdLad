@@ -349,7 +349,7 @@ Deno.test({
 Deno.test({
 	name: "Fires a second time even when setting the gameplaystart state fails",
 	async fn() {
-		const consoleErrorSpy = stub(console, "error");
+		const consoleErrorStub = stub(console, "error");
 
 		try {
 			const error = new Error("oh no");
@@ -383,7 +383,249 @@ Deno.test({
 				errorReason: null,
 			});
 		} finally {
-			consoleErrorSpy.restore();
+			consoleErrorStub.restore();
 		}
+	},
+});
+
+Deno.test({
+	name: "showFullScreenAd and showRewardedAd parameters are passed to the plugin",
+	async fn() {
+		const consoleErrorStub = stub(console, "error");
+
+		try {
+			const plugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+				name: "myplugin",
+				/**
+				 * @param {Object} options
+				 * @param {number} options._foo
+				 * @param {string} options._bar
+				 */
+				async showFullScreenAd({ _foo, _bar }) {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+				/**
+				 * @param {Object} options
+				 * @param {number} options._foo
+				 * @param {string} options._bar
+				 */
+				async showRewardedAd({ _foo, _bar }) {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+			});
+
+			const unusedPlugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+				name: "unused",
+				/**
+				 * @param {Object} options
+				 * @param {boolean} options._baz
+				 */
+				async showFullScreenAd({ _baz }) {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+				/**
+				 * @param {Object} options
+				 * @param {boolean} options._baz
+				 */
+				async showRewardedAd({ _baz }) {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+			});
+
+			const pluginWithoutOptions = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+				name: "withoutoptions",
+				async showFullScreenAd() {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+				async showRewardedAd() {
+					return {
+						didShowAd: true,
+						errorReason: null,
+					};
+				},
+			});
+
+			const pluginFullScreenSpy = spy(plugin, "showFullScreenAd");
+			const unusedPluginFullScreenSpy = spy(unusedPlugin, "showFullScreenAd");
+			const pluginWithoutOptionsFullScreenSpy = spy(pluginWithoutOptions, "showFullScreenAd");
+			const pluginRewardedSpy = spy(plugin, "showRewardedAd");
+			const unusedPluginRewarded = spy(unusedPlugin, "showRewardedAd");
+			const pluginWithoutOptionsRewardedSpy = spy(pluginWithoutOptions, "showRewardedAd");
+
+			const adLad = new AdLad([plugin, unusedPlugin, pluginWithoutOptions]);
+
+			await adLad.showFullScreenAd({
+				pluginOptions: {
+					myplugin: {
+						_foo: 3,
+						_bar: "str",
+					},
+					unused: {
+						_baz: true,
+					},
+				},
+			});
+
+			await waitForMicrotasks();
+
+			assertSpyCalls(pluginFullScreenSpy, 1);
+			assertSpyCalls(unusedPluginFullScreenSpy, 0);
+			assertSpyCalls(pluginWithoutOptionsFullScreenSpy, 0);
+			assertSpyCall(pluginFullScreenSpy, 0, {
+				args: [{ _foo: 3, _bar: "str" }],
+			});
+
+			await adLad.showRewardedAd({
+				pluginOptions: {
+					myplugin: {
+						_foo: 4,
+						_bar: "str2",
+					},
+					unused: {
+						_baz: false,
+					},
+				},
+			});
+
+			await waitForMicrotasks();
+
+			assertSpyCalls(pluginRewardedSpy, 1);
+			assertSpyCalls(unusedPluginRewarded, 0);
+			assertSpyCalls(pluginWithoutOptionsRewardedSpy, 0);
+			assertSpyCall(pluginRewardedSpy, 0, {
+				args: [{ _foo: 4, _bar: "str2" }],
+			});
+
+			// TODO #19 ts-expect-error gameplayStart should exect one parameter
+			await adLad.showFullScreenAd();
+
+			await adLad.showFullScreenAd({
+				pluginOptions: {
+					// @ts-expect-error 'invalid' is not an expected plugin
+					invalid: {
+						_foo: 3,
+						_bar: "str",
+					},
+				},
+			});
+
+			await adLad.showFullScreenAd({
+				// @ts-expect-error 'unused' plugin is missing
+				pluginOptions: {
+					myplugin: {
+						_foo: 3,
+						_bar: "str",
+					},
+				},
+			});
+
+			await adLad.showFullScreenAd({
+				pluginOptions: {
+					myplugin: {
+						// @ts-expect-error '_foo' is a number
+						_foo: "not a string",
+						_bar: "str",
+					},
+					unused: {
+						_baz: true,
+					},
+				},
+			});
+		} finally {
+			consoleErrorStub.restore();
+		}
+	},
+});
+
+Deno.test({
+	name: "Some plugins take arguments, but the active plugin doesn't",
+	async fn() {
+		const plugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "myplugin",
+			async showFullScreenAd() {
+				return {
+					didShowAd: true,
+					errorReason: null,
+				};
+			},
+			async showRewardedAd() {
+				return {
+					didShowAd: true,
+					errorReason: null,
+				};
+			},
+		});
+
+		const unusedPlugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "unused",
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			async showFullScreenAd({ _baz }) {
+				return {
+					didShowAd: true,
+					errorReason: null,
+				};
+			},
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			async showRewardedAd({ _baz }) {
+				return {
+					didShowAd: true,
+					errorReason: null,
+				};
+			},
+		});
+
+		const pluginFullScreenSpy = spy(plugin, "showFullScreenAd");
+		const pluginRewardedSpy = spy(plugin, "showRewardedAd");
+
+		const adLad = new AdLad([plugin, unusedPlugin]);
+		await adLad.showFullScreenAd({
+			pluginOptions: {
+				unused: {
+					_baz: true,
+				},
+			},
+		});
+
+		await waitForMicrotasks();
+		assertSpyCalls(pluginFullScreenSpy, 1);
+		assertSpyCalls(pluginRewardedSpy, 0);
+		assertSpyCall(pluginFullScreenSpy, 0, {
+			args: [],
+		});
+
+		await adLad.showRewardedAd({
+			pluginOptions: {
+				unused: {
+					_baz: true,
+				},
+			},
+		});
+		await waitForMicrotasks();
+		assertSpyCalls(pluginFullScreenSpy, 1);
+		assertSpyCalls(pluginRewardedSpy, 1);
+		assertSpyCall(pluginRewardedSpy, 0, {
+			args: [],
+		});
 	},
 });
