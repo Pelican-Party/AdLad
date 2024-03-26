@@ -398,10 +398,10 @@ Deno.test({
 				name: "myplugin",
 				/**
 				 * @param {Object} options
-				 * @param {number} options._foo
-				 * @param {string} options._bar
+				 * @param {number} options._foo1
+				 * @param {string} options._bar1
 				 */
-				async showFullScreenAd({ _foo, _bar }) {
+				async showFullScreenAd({ _foo1, _bar1 }) {
 					return {
 						didShowAd: true,
 						errorReason: null,
@@ -409,10 +409,10 @@ Deno.test({
 				},
 				/**
 				 * @param {Object} options
-				 * @param {number} options._foo
-				 * @param {string} options._bar
+				 * @param {number} options._foo2
+				 * @param {string} options._bar2
 				 */
-				async showRewardedAd({ _foo, _bar }) {
+				async showRewardedAd({ _foo2, _bar2 }) {
 					return {
 						didShowAd: true,
 						errorReason: null,
@@ -472,8 +472,8 @@ Deno.test({
 			await adLad.showFullScreenAd({
 				pluginOptions: {
 					myplugin: {
-						_foo: 3,
-						_bar: "str",
+						_foo1: 3,
+						_bar1: "str",
 					},
 					unused: {
 						_baz: true,
@@ -487,14 +487,14 @@ Deno.test({
 			assertSpyCalls(unusedPluginFullScreenSpy, 0);
 			assertSpyCalls(pluginWithoutOptionsFullScreenSpy, 0);
 			assertSpyCall(pluginFullScreenSpy, 0, {
-				args: [{ _foo: 3, _bar: "str" }],
+				args: [{ _foo1: 3, _bar1: "str" }],
 			});
 
 			await adLad.showRewardedAd({
 				pluginOptions: {
 					myplugin: {
-						_foo: 4,
-						_bar: "str2",
+						_foo2: 4,
+						_bar2: "str2",
 					},
 					unused: {
 						_baz: false,
@@ -508,7 +508,7 @@ Deno.test({
 			assertSpyCalls(unusedPluginRewarded, 0);
 			assertSpyCalls(pluginWithoutOptionsRewardedSpy, 0);
 			assertSpyCall(pluginRewardedSpy, 0, {
-				args: [{ _foo: 4, _bar: "str2" }],
+				args: [{ _foo2: 4, _bar2: "str2" }],
 			});
 
 			// TODO #19 ts-expect-error gameplayStart should exect one parameter
@@ -528,8 +528,8 @@ Deno.test({
 				// @ts-expect-error 'unused' plugin is missing
 				pluginOptions: {
 					myplugin: {
-						_foo: 3,
-						_bar: "str",
+						_foo1: 3,
+						_bar1: "str",
 					},
 				},
 			});
@@ -538,8 +538,8 @@ Deno.test({
 				pluginOptions: {
 					myplugin: {
 						// @ts-expect-error '_foo' is a number
-						_foo: "not a string",
-						_bar: "str",
+						_foo1: "not a string",
+						_bar1: "str",
 					},
 					unused: {
 						_baz: true,

@@ -732,7 +732,7 @@ export class AdLad {
 	/**
 	 * Waits for the plugin to initialize and shows a rewarded ad once it's ready.
 	 * @param {Object} options
-	 * @param {CollectPluginArgs<TPlugins, "showFullScreenAd", 0>} [options.pluginOptions]
+	 * @param {CollectPluginArgs<TPlugins, "showRewardedAd", 0>} [options.pluginOptions]
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showRewardedAd(options = {}) {
