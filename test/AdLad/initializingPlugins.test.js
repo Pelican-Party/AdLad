@@ -64,7 +64,7 @@ Deno.test({
 			// other calls should still work as well
 			assertEquals(await adLad.showFullScreenAd(), {
 				didShowAd: false,
-				errorReason: "not-supported",
+				errorReason: "no-active-plugin",
 			});
 		} finally {
 			consoleWarnSpy.restore();
@@ -101,7 +101,7 @@ Deno.test({
 			// other calls should still work as well
 			assertEquals(await adLad.showFullScreenAd(), {
 				didShowAd: false,
-				errorReason: "not-supported",
+				errorReason: "no-active-plugin",
 			});
 		} finally {
 			consoleWarnSpy.restore();

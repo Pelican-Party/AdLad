@@ -1,5 +1,5 @@
 import { assertEquals } from "$std/testing/asserts.ts";
-import { assertSpyCall, assertSpyCalls } from "$std/testing/mock.ts";
+import { assertSpyCall, assertSpyCalls, stub } from "$std/testing/mock.ts";
 import { AdLad } from "../../src/AdLad.js";
 import { createOnBooleanChangeSpy, waitForMicrotasks } from "../shared.js";
 
@@ -288,5 +288,36 @@ Deno.test({
 
 		assertEquals(adLad.canShowRewardedAd, true);
 		assertSpyCalls(changeSpy, 0);
+	},
+});
+
+Deno.test({
+	name: "Plugin that fails to initialize",
+	async fn() {
+		const consoleStub = stub(console, "warn", () => {});
+
+		try {
+			const adLad = new AdLad([
+				{
+					name: "plugin",
+					initialize(ctx) {
+						ctx.setCanShowFullScreenAd(true);
+						throw new Error("oh no");
+					},
+					async showRewardedAd() {
+						return {
+							didShowAd: true,
+							errorReason: null,
+						};
+					},
+				},
+			]);
+			await waitForMicrotasks();
+
+			assertEquals(adLad.canShowFullScreenAd, false);
+			assertEquals(adLad.canShowRewardedAd, false);
+		} finally {
+			consoleStub.restore();
+		}
 	},
 });

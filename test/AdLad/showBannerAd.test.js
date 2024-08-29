@@ -1,4 +1,4 @@
-import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
+import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
 import { assertEquals, assertRejects } from "$std/testing/asserts.ts";
 import { AdLad } from "../../src/AdLad.js";
 import {
@@ -428,5 +428,33 @@ testTypes({
 		adLad.showBannerAd(el, {});
 		adLad.destroyBannerAd(el);
 		adLad.destroyBannerAd(el, {});
+	},
+});
+
+Deno.test({
+	name: "Plugin that fails to initialize",
+	async fn() {
+		await runWithDomAndElementAsync(async () => {
+			const { plugin, showBannerSpy, destroyBannerSpy } = createSpyPlugin();
+			plugin.initialize = () => {
+				throw new Error("oh no");
+			};
+
+			const consoleStub = stub(console, "warn", () => {});
+			try {
+				const adLad = new AdLad([plugin]);
+				await waitForMicrotasks();
+
+				assertEquals(adLad.canShowBannerAd, false);
+
+				const el = createMockElement();
+				await adLad.showBannerAd(el);
+				await adLad.destroyBannerAd(el);
+				assertSpyCalls(showBannerSpy, 0);
+				assertSpyCalls(destroyBannerSpy, 0);
+			} finally {
+				consoleStub.restore();
+			}
+		});
 	},
 });

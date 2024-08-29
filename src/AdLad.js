@@ -295,6 +295,8 @@ export class AdLad {
 
 		/** @private @type {AdLadPlugin?} */
 		this._plugin = null;
+		/** @private @type {boolean} */
+		this._pluginInitializeFailed = false;
 		let foundPlugin = false;
 		if (allowQueryStringPluginSelection && window.location) {
 			const url = new URL(window.location.href);
@@ -414,15 +416,21 @@ export class AdLad {
 						});
 					} catch (e) {
 						console.warn(`The "${name}" AdLad plugin failed to initialize`, e);
+						this._pluginInitializeFailed = true;
+						this._canShowFullScreenAdState.setValue(false);
+						this._canShowRewardedAdState.setValue(false);
+						this._canShowBannerAdState.setValue(false);
 					}
-					if (!canShowFullScreenAdAdjusted && certainShowFullScreenAd) {
-						this._canShowFullScreenAdState.setValue(true);
-					}
-					if (!canShowRewardedAdAdjusted && certainShowRewardedAd) {
-						this._canShowRewardedAdState.setValue(true);
-					}
-					if (certainShowBannerAd) {
-						this._canShowBannerAdState.setValue(true);
+					if (!this._pluginInitializeFailed) {
+						if (!canShowFullScreenAdAdjusted && certainShowFullScreenAd) {
+							this._canShowFullScreenAdState.setValue(true);
+						}
+						if (!canShowRewardedAdAdjusted && certainShowRewardedAd) {
+							this._canShowRewardedAdState.setValue(true);
+						}
+						if (certainShowBannerAd) {
+							this._canShowBannerAdState.setValue(true);
+						}
 					}
 				})();
 			} else {
@@ -618,7 +626,7 @@ export class AdLad {
 		this._isShowingAd = true;
 		await this._updateGameplayStartState();
 		try {
-			if (!this._plugin || !this.activePlugin) {
+			if (!this._plugin || !this.activePlugin || this._pluginInitializeFailed) {
 				return {
 					didShowAd: false,
 					errorReason: "no-active-plugin",
@@ -781,7 +789,7 @@ export class AdLad {
 			}
 			element = el;
 		}
-		if (!this._plugin || !this.activePlugin || !this._plugin.showBannerAd) return;
+		if (!this._plugin || !this.activePlugin || !this._plugin.showBannerAd || this._pluginInitializeFailed) return;
 		if (this._pluginInitializePromise) await this._pluginInitializePromise;
 
 		const rect = element.getBoundingClientRect();
@@ -816,7 +824,9 @@ export class AdLad {
 			}
 			element = el;
 		}
-		if (!this._plugin || !this.activePlugin || !this._plugin.destroyBannerAd) return;
+		if (!this._plugin || !this.activePlugin || !this._plugin.destroyBannerAd || this._pluginInitializeFailed) {
+			return;
+		}
 		if (this._pluginInitializePromise) await this._pluginInitializePromise;
 
 		const childEl = element.children[0];

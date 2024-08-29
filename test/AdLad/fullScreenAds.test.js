@@ -629,3 +629,41 @@ Deno.test({
 		});
 	},
 });
+
+Deno.test({
+	name: "Plugin that fails to initialize",
+	async fn() {
+		const { plugin, showSpy } = createSpyPlugin();
+		plugin.initialize = (ctx) => {
+			ctx.setCanShowRewardedAd(true);
+			throw new Error("oh no");
+		};
+		plugin.showRewardedAd = async () => {
+			return {
+				didShowAd: true,
+				errorReason: null,
+			};
+		};
+		const consoleStub = stub(console, "warn", () => {});
+		try {
+			const adLad = new AdLad([plugin]);
+			await waitForMicrotasks();
+
+			const result1 = await adLad.showFullScreenAd();
+			assertEquals(result1, {
+				didShowAd: false,
+				errorReason: "no-active-plugin",
+			});
+
+			const result2 = await adLad.showRewardedAd();
+			assertEquals(result2, {
+				didShowAd: false,
+				errorReason: "no-active-plugin",
+			});
+
+			assertSpyCalls(showSpy, 0);
+		} finally {
+			consoleStub.restore();
+		}
+	},
+});
