@@ -206,16 +206,20 @@ const invalidQueryStringBehaviourTypes = [
 /**
  * @template {AdLadPlugin} TPlugins
  * @template {string} TCommand
- * @typedef {TPlugins["customRequests"] extends {[x in TCommand]: any}
- * 	? TPlugins["customRequests"][TCommand]
- * 	: (...args: any[]) => unknown} GetCustomRequestSignature
+ * @typedef {TPlugins extends {customRequests: any}
+ * 	?TPlugins["customRequests"] extends {[x in TCommand]: any}
+ * 		? TPlugins["customRequests"][TCommand]
+ * 		: never
+ * 	: never} GetCustomRequestSignature
  */
 
 /**
  * @template {AdLadPlugin} TPlugins
- * @typedef {TPlugins["customRequests"] extends {[x in infer TCommand]: any}
- * 	? TCommand extends string
- * 		? TCommand
+ * @typedef {TPlugins extends {customRequests: any}
+ * 	? TPlugins["customRequests"] extends {[x in infer TCommand]: any}
+ * 		? TCommand extends string
+ * 			? TCommand
+ * 			: never
  * 		: never
  * 	: never} GetCustomRequestCommands
  */
