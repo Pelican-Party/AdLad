@@ -14,9 +14,9 @@ Deno.test({
 		const adLad = new AdLad();
 
 		// @ts-ignore no plugins
-		adLad.customRequest("command", "arg1", "arg2");
+		adLad.customRequests.command("arg1", "arg2");
 		// @ts-ignore no plugins
-		adLad.customRequestSpecific("non-existent", "command", "arg1", "arg2");
+		adLad.customRequestsForPlugin("non-existent").command("arg1", "arg2");
 	},
 });
 
@@ -30,9 +30,9 @@ Deno.test({
 		]);
 
 		// @ts-ignore no custom requests
-		adLad.customRequest("command", "arg1", "arg2");
+		adLad.customRequests.command("arg1", "arg2");
 		// @ts-ignore no plugins
-		adLad.customRequestSpecific("plugin", "command", "arg1", "arg2");
+		adLad.customRequestsForPlugin("plugin").command("arg1", "arg2");
 	},
 });
 
@@ -49,9 +49,9 @@ Deno.test({
 		]);
 
 		// @ts-ignore non-existent
-		adLad.customRequest("nonExistent", "arg1", "arg2");
+		adLad.customRequests.nonExistent("arg1", "arg2");
 		// @ts-ignore no plugins
-		adLad.customRequestSpecific("plugin", "nonExistent", "arg1", "arg2");
+		adLad.customRequestsForPlugin("plugin").nonExistent("arg1", "arg2");
 	},
 });
 
@@ -83,7 +83,7 @@ Deno.test({
 		// Wait for plugin initialization
 		await waitForMicrotasks();
 
-		await adLad.customRequest("foo", 3, "bar");
+		await adLad.customRequests.foo(3, "bar");
 		assertSpyCalls(inactiveFooSpy, 0);
 		assertSpyCalls(activeFooSpy, 1);
 		assertSpyCall(activeFooSpy, 0, {
@@ -98,7 +98,7 @@ Deno.test({
 		const { plugin, fooSpy } = createSpyPlugin();
 		const { adLad, resolveInitialize } = initializingPluginTest(plugin);
 
-		const promise = adLad.customRequest("foo", 3, "bar");
+		const promise = adLad.customRequests.foo(3, "bar");
 
 		await waitForMicrotasks();
 		assertSpyCalls(fooSpy, 0);
@@ -153,16 +153,16 @@ testTypes({
 		const adLad = createAdLadWithMultipleCustomRequestPlugins();
 
 		// @ts-expect-error non existent command
-		adLad.customRequest("non-existent");
+		adLad.customRequests.nonExistent();
 		// @ts-expect-error missing arguments
-		adLad.customRequest("foo");
+		adLad.customRequests.foo();
 		// @ts-expect-error too many arguments
-		adLad.customRequest("foo", 42, "str", "too many");
+		adLad.customRequests.foo(42, "str", "too many");
 		// @ts-expect-error incorrect arguments
-		adLad.customRequest("foo", "not a number", "str");
+		adLad.customRequests.foo("not a number", "str");
 		// Exactly right
-		const result = adLad.customRequest("foo", 42, "str");
-		adLad.customRequest("bar", 42, "str");
+		const result = adLad.customRequests.foo(42, "str");
+		adLad.customRequests.bar(42, "str");
 
 		// Verify that the type is a `Promise<boolean | undefined>` and nothing else
 		const booleanPromise = Promise.resolve(/** @type {boolean | undefined} */ (true));
@@ -175,26 +175,26 @@ testTypes({
 });
 
 testTypes({
-	name: "customRequestSpecific arguments and return type are inferred from the command",
+	name: "customRequestsForPlugin arguments and return type are inferred from the command",
 	fn() {
 		const adLad = createAdLadWithMultipleCustomRequestPlugins();
 
 		// @ts-expect-error non existent command
-		adLad.customRequestSpecific("pluginWithFoo", "non-existent");
+		adLad.customRequestsForPlugin("pluginWithFoo").nonExistent();
 		// @ts-expect-error missing arguments
-		adLad.customRequestSpecific("pluginWithFoo", "foo");
+		adLad.customRequestsForPlugin("pluginWithFoo").foo();
 		// @ts-expect-error too many arguments
-		adLad.customRequestSpecific("pluginWithFoo", "foo", 42, "str", "too many");
+		adLad.customRequestsForPlugin("pluginWithFoo").foo(42, "str", "too many");
 		// @ts-expect-error incorrect arguments
-		adLad.customRequestSpecific("pluginWithFoo", "foo", "not a number", "str");
+		adLad.customRequestsForPlugin("pluginWithFoo").foo("not a number", "str");
 		// Exactly right
-		const result = adLad.customRequestSpecific("pluginWithFoo", "foo", 42, "str");
-		adLad.customRequestSpecific("pluginWithBar", "bar", 42, "str");
+		const result = adLad.customRequestsForPlugin("pluginWithFoo").foo(42, "str");
+		adLad.customRequestsForPlugin("pluginWithBar").bar(42, "str");
 
 		// @ts-expect-error plugin with no custom requests
-		adLad.customRequestSpecific("pluginWithEmptyCustomRequests", "plugin has no custom requests");
+		adLad.customRequestsForPlugin("pluginWithEmptyCustomRequests").nonExistent();
 		// @ts-expect-error plugin with no custom requests
-		adLad.customRequestSpecific("pluginWithoutCustomRequests", "plugin has no custom requests");
+		adLad.customRequestsForPlugin("pluginWithoutCustomRequests").nonExistent();
 
 		// Verify that the type is a `Promise<boolean | undefined>` and nothing else
 		const booleanPromise = Promise.resolve(/** @type {boolean | undefined} */ (true));
@@ -207,7 +207,7 @@ testTypes({
 });
 
 testTypes({
-	name: "customRequestSpecific only allows commands from the specified plugin",
+	name: "customRequestsForPlugin only allows commands from the specified plugin",
 	fn() {
 		const pluginA = /** @type {const} */ ({
 			name: "plugin-a",
@@ -229,12 +229,12 @@ testTypes({
 		});
 		const adLad = new AdLad([pluginA, pluginB]);
 
-		adLad.customRequestSpecific("plugin-a", "foo", 42);
-		adLad.customRequestSpecific("plugin-b", "bar", "str");
+		adLad.customRequestsForPlugin("plugin-a").foo(42);
+		adLad.customRequestsForPlugin("plugin-b").bar("str");
 
 		// @ts-expect-error incorrect command
-		adLad.customRequestSpecific("plugin-a", "bar");
+		adLad.customRequestsForPlugin("plugin-a").bar();
 		// @ts-expect-error incorrect command
-		adLad.customRequestSpecific("plugin-b", "foo");
+		adLad.customRequestsForPlugin("plugin-b").foo();
 	},
 });

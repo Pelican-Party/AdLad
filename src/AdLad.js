@@ -204,22 +204,22 @@ const invalidQueryStringBehaviourTypes = [
  */
 
 /**
- * @template {AdLadPlugin} TPlugins
- * @template {string} TCommand
- * @typedef {TPlugins extends {customRequests: any}
- * 	?TPlugins["customRequests"] extends {[x in TCommand]: any}
- * 		? TPlugins["customRequests"][TCommand]
- * 		: never
- * 	: never} GetCustomRequestSignature
+ * @template T
+ * @typedef {{
+ * 	[K in keyof T]: T[K] extends (...args: infer A) => infer R ? (...args: A) => Promise<R | undefined> : T[K];
+ * }} PromisifyProps
+ */
+
+/**
+ * @template U
+ * @typedef {(U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never} UnionToIntersection
  */
 
 /**
  * @template {AdLadPlugin} TPlugins
  * @typedef {TPlugins extends {customRequests: any}
- * 	? TPlugins["customRequests"] extends {[x in infer TCommand]: any}
- * 		? TCommand extends string
- * 			? TCommand
- * 			: never
+ * 	? TPlugins["customRequests"] extends {[x: string]: any}
+ * 		? TPlugins["customRequests"]
  * 		: never
  * 	: never} GetCustomRequestCommands
  */
@@ -857,37 +857,66 @@ export class AdLad {
 	 * This allows plugins to extend their functionality with features that are not built-in into AdLad.
 	 * For example, an sdk might have support for a `happytime()` call or getting an invite link.
 	 *
+	 * ## Example usage
+	 *
+	 * ```js
+	 * adLad.customRequests.myCoolCustomRequest("foo");
+	 * ```
+	 *
+	 * Properties of this object will always be callable, even if the active plugin doesn't implement the custom request.
+	 * In the example above, the call will essentially be a no-op if the active plugin doesn't implement `myCoolCustomRequest`.
+	 * You can still call it and you don't have to check if the function exists.
+	 *
 	 * Plugins often share a similar signature for similar requests.
 	 * When two plugins require the same arguments, you can use this just fine
 	 * and your request will be forwarded to the plugin that is currently active.
 	 * But it's possible that two plugins have name clashes between commands and both require a different set of parameters.
 	 * In that case you can use {@linkcode customRequestSpecific} to target your parameters to a specific plugin.
-	 * @template {GetCustomRequestCommands<TPlugins>} TCommand
-	 * @param {TCommand} command
-	 * @param {Parameters<GetCustomRequestSignature<TPlugins, TCommand>>} args
 	 */
-	async customRequest(command, ...args) {
-		if (!this.activePlugin) return;
-		const result = await this.customRequestSpecific(this.activePlugin, command, ...args);
-		return /** @type {ReturnType<GetCustomRequestSignature<TPlugins, TCommand>>} */ (result);
+	get customRequests() {
+		const proxy = new Proxy({}, {
+			get: (_target, command) => {
+				/** @type {(...args: any) => Promise<any>} */
+				const fn = async (...args) => {
+					if (!this.activePlugin) return;
+					const pluginFunctions = this.customRequestsForPlugin(this.activePlugin);
+					const castFunctions = /** @type {Object.<string | symbol, () => any>} */ (pluginFunctions);
+					const pluginFunction = castFunctions[command];
+					return await pluginFunction(...args);
+				};
+				return fn;
+			},
+		});
+		return /** @type {PromisifyProps<UnionToIntersection<GetCustomRequestCommands<TPlugins>>>} */ (proxy);
 	}
 
 	/**
-	 * Similar to {@linkcode customRequest} but targets a specific plugin.
+	 * Similar to {@linkcode customRequests} but targets a specific plugin.
 	 * If the specified plugin is not the active plugin, this is a no-op.
+	 *
+	 * ## Example usage
+	 * ```js
+	 * adLad.customRequestsForPlugin("plugin-name").myCoolCustomRequest("foo");
+	 * ```
 	 * @template {TPlugins["name"]} TPluginName
-	 * @template {GetCustomRequestCommands<GetPluginFromUnionByName<TPlugins, TPluginName>>} TCommand
 	 * @param {TPluginName} plugin
-	 * @param {TCommand} command
-	 * @param {Parameters<GetCustomRequestSignature<TPlugins, TCommand>>} args
 	 */
-	async customRequestSpecific(plugin, command, ...args) {
-		if (plugin != this.activePlugin || !this._plugin || !this._plugin.customRequests) return;
-		if (this._pluginInitializePromise) await this._pluginInitializePromise;
-		const requestFunction = this._plugin.customRequests[command];
-		if (!requestFunction) return;
-
-		const result = requestFunction(...args);
-		return /** @type {ReturnType<GetCustomRequestSignature<TPlugins, TCommand>>} */ (result);
+	customRequestsForPlugin(plugin) {
+		const proxy = new Proxy({}, {
+			get: (_target, command) => {
+				/** @type {(...args: any) => Promise<any>} */
+				const fn = async (...args) => {
+					if (plugin != this.activePlugin || !this._plugin || !this._plugin.customRequests) return;
+					if (this._pluginInitializePromise) await this._pluginInitializePromise;
+					const castFunctions =
+						/** @type {Object.<string | symbol, () => any>} */ (this._plugin.customRequests);
+					const requestFunction = castFunctions[command];
+					if (!requestFunction) return;
+					return requestFunction(...args);
+				};
+				return fn;
+			},
+		});
+		return /** @type {PromisifyProps<GetPluginFromUnionByName<TPlugins, TPluginName>["customRequests"]>} */ (proxy);
 	}
 }
