@@ -14,26 +14,20 @@
 		"bundle": "deno run -A --node-modules-dir=false scripts/bundle.js"
 	},
 	"fmt": {
-		"files": {
-			"exclude": [
-				".denoTypes",
-				"dist"
-			]
-		},
-		"options": {
-			"indentWidth": 4,
-			"useTabs": true,
-			"lineWidth": 120
-		}
+		"exclude": [
+			".denoTypes",
+			"dist"
+		],
+		"indentWidth": 4,
+		"useTabs": true,
+		"lineWidth": 120
 	},
 	"lint": {
-		"files": {
-			"exclude": [
-				".denoTypes"
-			]
-		},
+		"exclude": [
+			".denoTypes"
+		],
 		"rules": {
-			"exclude": ["require-await", "no-explicit-any"]
+			"exclude": ["require-await", "no-explicit-any", "no-window"]
 		}
 	},
 	"importMap": "importmap.json"
