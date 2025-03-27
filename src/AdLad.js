@@ -497,6 +497,12 @@ export class AdLad {
 		/** @private @type {[unknown] | []} */
 		this._lastGameplayStopCallArgs = [];
 
+		/** @private @type {Set<HTMLElement>} */
+		this._createdBanners = new Set();
+
+		/** @private */
+		this._disposed = false;
+
 		this.gameplayStart = /** @type {CreatePluginCallSignature<"gameplayStart", boolean>} */ ((options) => {
 			this._lastGameplayStartState = true;
 			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
@@ -518,6 +524,22 @@ export class AdLad {
 			}
 			this._updateGameplayStartState();
 		});
+	}
+
+	dispose() {
+		for (const el of this._createdBanners) {
+			this.destroyBannerAd(el);
+		}
+		this._disposed = true;
+	}
+
+	/**
+	 * @private
+	 */
+	_assertNotDispossed() {
+		if (this._disposed) {
+			throw new Error("AdLad has been disposed.");
+		}
 	}
 
 	/**
@@ -786,6 +808,8 @@ export class AdLad {
 	 * @param {CollectPluginArgs<TPlugins, "showBannerAd", 1>} [options.pluginOptions]
 	 */
 	async showBannerAd(element, options = {}) {
+		this._assertNotDispossed();
+
 		if (typeof element == "string") {
 			const el = document.getElementById(element);
 			if (!el) {
@@ -796,6 +820,10 @@ export class AdLad {
 		if (!this._plugin || !this.activePlugin || !this._plugin.showBannerAd || this._pluginInitializeFailed) return;
 		if (this._pluginInitializePromise) await this._pluginInitializePromise;
 
+		if (this._createdBanners.has(element)) {
+			throw new Error("A banner ad was already created using this element.");
+		}
+		this._createdBanners.add(element);
 		const rect = element.getBoundingClientRect();
 		const childEl = document.createElement("div");
 		element.appendChild(childEl);
@@ -821,6 +849,8 @@ export class AdLad {
 	 * @param {CollectPluginArgs<TPlugins, "destroyBannerAd", 1>} [options.pluginOptions]
 	 */
 	async destroyBannerAd(element, options = {}) {
+		this._assertNotDispossed();
+
 		if (typeof element == "string") {
 			const el = document.getElementById(element);
 			if (!el) {
@@ -832,6 +862,8 @@ export class AdLad {
 			return;
 		}
 		if (this._pluginInitializePromise) await this._pluginInitializePromise;
+
+		this._createdBanners.delete(element);
 
 		const childEl = element.children[0];
 		if (!(childEl instanceof HTMLElement)) {

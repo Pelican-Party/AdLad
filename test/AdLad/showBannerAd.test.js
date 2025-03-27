@@ -458,3 +458,78 @@ Deno.test({
 		});
 	},
 });
+
+Deno.test({
+	name: "Calling showBannerAd on the same element twice throws",
+	async fn() {
+		await runWithDomAndElementAsync(async () => {
+			const { plugin } = createSpyPlugin();
+			const adLad = new AdLad([plugin]);
+
+			const el = createMockElement();
+			await adLad.showBannerAd(el);
+
+			await assertRejects(
+				async () => {
+					await adLad.showBannerAd(el);
+				},
+				Error,
+				"A banner ad was already created using this element",
+			);
+		});
+	},
+});
+
+Deno.test({
+	name: "Banner ads get destroyed when AdLad is disposed",
+	async fn() {
+		await runWithDomAndElementAsync(async () => {
+			const { plugin, showBannerSpy, destroyBannerSpy } = createSpyPlugin();
+			const adLad = new AdLad([plugin]);
+
+			const el1 = createMockElement();
+			await adLad.showBannerAd(el1);
+
+			const el2 = createMockElement();
+			await adLad.showBannerAd(el2);
+			await adLad.destroyBannerAd(el2);
+
+			const el3 = createMockElement();
+			await adLad.showBannerAd(el3);
+
+			await waitForMicrotasks();
+			assertSpyCalls(showBannerSpy, 3);
+			assertSpyCalls(destroyBannerSpy, 1);
+
+			adLad.dispose();
+			assertSpyCalls(destroyBannerSpy, 3);
+		});
+	},
+});
+
+Deno.test({
+	name: "Creating or destroying a banner ad after disposing AdLad should throw",
+	async fn() {
+		await runWithDomAndElementAsync(async () => {
+			const { plugin } = createSpyPlugin();
+			const adLad = new AdLad([plugin]);
+			adLad.dispose();
+
+			const el = createMockElement();
+			await assertRejects(
+				async () => {
+					await adLad.showBannerAd(el);
+				},
+				Error,
+				"AdLad has been disposed.",
+			);
+			await assertRejects(
+				async () => {
+					await adLad.destroyBannerAd(el);
+				},
+				Error,
+				"AdLad has been disposed.",
+			);
+		});
+	},
+});
