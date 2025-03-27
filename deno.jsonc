@@ -24,7 +24,8 @@
 	},
 	"lint": {
 		"exclude": [
-			".denoTypes"
+			".denoTypes",
+			"dist"
 		],
 		"rules": {
 			"exclude": ["require-await", "no-explicit-any", "no-window"]
