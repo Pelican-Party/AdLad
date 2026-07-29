@@ -1,5 +1,5 @@
 import { assertEquals } from "$std/testing/asserts.ts";
-import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
+import { assertSpyCall, assertSpyCalls, spy } from "$std/testing/mock.ts";
 import { AdLadPlugin } from "../src/AdLad.js";
 import { AdLadStorage } from "../src/AdLadStorage.js";
 import { assertPromiseResolved } from "./shared.js";
@@ -306,7 +306,7 @@ Deno.test({
 		const { localStorage, setSpy } = createMockLocalStorage();
 		const { console, warnSpy } = createMockConsole();
 		const { plugin } = createSpyPlugin({
-			setItem(key, value) {
+			setItem(_key, _value) {
 				throw new Error("custom plugin error");
 			},
 		});
@@ -337,7 +337,7 @@ Deno.test({
 		const { console, warnSpy } = createMockConsole();
 
 		const { plugin } = createSpyPlugin({
-			getItem(key) {
+			getItem(_key) {
 				throw new Error("custom plugin error");
 			},
 		});
@@ -442,7 +442,7 @@ Deno.test({
 		const storage = new AdLadStorage({
 			plugin: {
 				name: "plugin",
-				getStorageItem(key) {
+				getStorageItem(_key) {
 					return {
 						date: new Date("2026-07-28T15:53:55.353Z"),
 						fn: () => {},
