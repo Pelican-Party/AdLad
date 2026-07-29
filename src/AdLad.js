@@ -1,3 +1,4 @@
+import { AdladStorage } from "./AdLadStorage.js";
 import { DeveloperBooleanState } from "./DeveloperBooleanState.js";
 import { PluginBooleanState } from "./PluginBooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
@@ -103,6 +104,17 @@ import { generateUuid } from "./util.js";
  * let AdLad know about the `needsMute` value and its events. By default `needsMute` is automatically managed and
  * set to `true` during full screen ads. But when you enable manual management you have more control over this.
  * For example, you could make sure `needsMute` becomes true once the ad actually loads, instead of the moment it is requested.
+ *
+ * @property {(key: string, value: unknown) => void | Promise<void>} [setStorageItem] Hook that gets called when the
+ * developer wishes to store data in the cloud sync account of the user. You should expect the value to be
+ * a json serializable object. If this hook is not implemented, AdLad will default to storing values using the
+ * localStorage api.
+ * @property {(key: string) => unknown | Promise<unknown>} [getStorageItem] Hook that gets called when the
+ * developer wishes to retreive data from the cloud sync account of the user. You should return the exact
+ * object that was provided in `setStorageItem` without modifying its format. You don't need to implement
+ * any caching logic, as AdLad already does this for you. Any value provided by `setStorageItem` or retreived from
+ * `getStorageItem` within the same session will be stored in memory and no more `getStorageItem` will be made
+ * for that key until the page is refreshed.
  *
  * @property {Object.<string, (...args: any[]) => any>} [customRequests]
  */
@@ -524,6 +536,12 @@ export class AdLad {
 			}
 			this._updateGameplayStartState();
 		});
+
+		/** @private */
+		this._storage = new AdladStorage({
+			plugin: this._plugin,
+			pluginInitializePromise: this._pluginInitializePromise,
+		});
 	}
 
 	dispose() {
@@ -881,6 +899,29 @@ export class AdLad {
 		}, userOptions);
 
 		element.removeChild(childEl);
+	}
+
+	/**
+	 * Stores data in the storage api of the plugin. If the plugin doesn't implement this functionality,
+	 * AdLad falls back to storing the data with the localStorage api.
+	 * Values can be any json serializable object.
+	 * @param {string} key
+	 * @param {unknown} value
+	 */
+	setStorageItem(key, value) {
+		return this._storage.setStorageItem(key, value);
+	}
+
+	/**
+	 * Retrieves data from the storage api of the plugin. If the plugin doesn't implement this functionality,
+	 * AdLad falls back to storing the data with the localStorage api.
+	 * Values can be any json serializable object. Returns `undefined` if the requested key does not exist.
+	 * @template T
+	 * @param {string} key
+	 * @returns {Promise<T>}
+	 */
+	getStorageItem(key) {
+		return this._storage.getStorageItem(key);
 	}
 
 	/**
