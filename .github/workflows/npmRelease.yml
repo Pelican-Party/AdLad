@@ -2,6 +2,12 @@ name: Publish Package to npmjs
 on:
   release:
     types: [published]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   npmrelease:
     runs-on: ubuntu-latest
@@ -16,11 +22,8 @@ jobs:
       - run: deno task check
       - run: deno task bundle
 
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '16.x'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
       - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
