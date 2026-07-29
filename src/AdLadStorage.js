@@ -17,7 +17,7 @@ function deserializeJson(str) {
 	}
 }
 
-export class AdladStorage {
+export class AdLadStorage {
 	/**
 	 * @param {Object} options
 	 * @param {import("./AdLad.js").AdLadPlugin?} options.plugin

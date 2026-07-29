@@ -1,7 +1,7 @@
 import { assertEquals } from "$std/testing/asserts.ts";
 import { assertSpyCall, assertSpyCalls, spy, stub } from "$std/testing/mock.ts";
 import { AdLadPlugin } from "../src/AdLad.js";
-import { AdladStorage } from "../src/AdLadStorage.js";
+import { AdLadStorage } from "../src/AdLadStorage.js";
 import { assertPromiseResolved } from "./shared.js";
 
 function createSpyPlugin({
@@ -65,7 +65,7 @@ Deno.test({
 			},
 		});
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: promise,
 		});
@@ -106,7 +106,7 @@ Deno.test({
 			},
 		});
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 		});
@@ -129,7 +129,7 @@ Deno.test({
 	name: "Value is undefined when a key doesn't exist",
 	async fn() {
 		const { localStorage } = createMockLocalStorage();
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin: null,
 			pluginInitializePromise: null,
 			localStorage,
@@ -149,7 +149,7 @@ Deno.test({
 			},
 		});
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 		});
@@ -171,7 +171,7 @@ Deno.test({
 	async fn() {
 		const { plugin, getSpy } = createSpyPlugin();
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 		});
@@ -195,7 +195,7 @@ Deno.test({
 	async fn() {
 		const { plugin, setSpy, getSpy } = createSpyPlugin();
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 		});
@@ -223,7 +223,7 @@ Deno.test({
 	async fn() {
 		const { localStorage, setSpy, getSpy } = createMockLocalStorage();
 
-		const storage1 = new AdladStorage({
+		const storage1 = new AdLadStorage({
 			plugin: null,
 			pluginInitializePromise: null,
 			localStorage,
@@ -232,7 +232,7 @@ Deno.test({
 		await storage1.setStorageItem("foo", "foo");
 		assertSpyCalls(setSpy, 1);
 
-		const storage2 = new AdladStorage({
+		const storage2 = new AdLadStorage({
 			plugin: null,
 			pluginInitializePromise: null,
 			localStorage,
@@ -249,7 +249,7 @@ Deno.test({
 		const { localStorage } = createMockLocalStorage(true);
 		const { console, warnSpy } = createMockConsole();
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin: null,
 			pluginInitializePromise: null,
 			localStorage,
@@ -276,7 +276,7 @@ Deno.test({
 	async fn() {
 		const { localStorage, setSpy, getSpy } = createMockLocalStorage();
 
-		const storage1 = new AdladStorage({
+		const storage1 = new AdLadStorage({
 			plugin: {
 				name: "plugin",
 			},
@@ -287,7 +287,7 @@ Deno.test({
 		await storage1.setStorageItem("foo", "foo");
 		assertSpyCalls(setSpy, 1);
 
-		const storage2 = new AdladStorage({
+		const storage2 = new AdLadStorage({
 			plugin: {
 				name: "plugin",
 			},
@@ -311,7 +311,7 @@ Deno.test({
 			},
 		});
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 			localStorage,
@@ -342,7 +342,7 @@ Deno.test({
 			},
 		});
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 			localStorage,
@@ -366,7 +366,7 @@ Deno.test({
 	async fn() {
 		const { localStorage } = createMockLocalStorage();
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin: null,
 			pluginInitializePromise: null,
 			localStorage,
@@ -411,7 +411,7 @@ Deno.test({
 			},
 		});
 
-		const storage1 = new AdladStorage({
+		const storage1 = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 		});
@@ -423,7 +423,7 @@ Deno.test({
 			undefinedValue: undefined,
 		});
 
-		const storage2 = new AdladStorage({
+		const storage2 = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: Promise.resolve(),
 		});
@@ -439,7 +439,7 @@ Deno.test({
 Deno.test({
 	name: "Values are always serialized to json, even when the plugin currently has non json values stored",
 	async fn() {
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin: {
 				name: "plugin",
 				getStorageItem(key) {
@@ -466,7 +466,7 @@ Deno.test({
 
 		const { plugin, setSpy, getSpy } = createSpyPlugin();
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: promise,
 		});
@@ -491,7 +491,7 @@ Deno.test({
 
 		const { plugin, getSpy } = createSpyPlugin();
 
-		const storage = new AdladStorage({
+		const storage = new AdLadStorage({
 			plugin,
 			pluginInitializePromise: promise,
 		});

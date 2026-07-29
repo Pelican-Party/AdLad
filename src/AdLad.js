@@ -1,4 +1,4 @@
-import { AdladStorage } from "./AdLadStorage.js";
+import { AdLadStorage } from "./AdLadStorage.js";
 import { DeveloperBooleanState } from "./DeveloperBooleanState.js";
 import { PluginBooleanState } from "./PluginBooleanState.js";
 import { getBestPlugin } from "./getBestPlugin.js";
@@ -538,7 +538,7 @@ export class AdLad {
 		});
 
 		/** @private */
-		this._storage = new AdladStorage({
+		this._storage = new AdLadStorage({
 			plugin: this._plugin,
 			pluginInitializePromise: this._pluginInitializePromise,
 		});
