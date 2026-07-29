@@ -5,8 +5,8 @@ import { AdladStorage } from "../src/AdLadStorage.js";
 import { assertPromiseResolved } from "./shared.js";
 
 function createSpyPlugin({
-	setItem = (key, value) => {},
-	getItem = (key) => {},
+	setItem = (_key, _value) => {},
+	getItem = (_key) => {},
 }: {
 	setItem?: (key: string, value: unknown) => void | Promise<void>;
 	getItem?: (key: string) => unknown | Promise<unknown>;
@@ -60,7 +60,7 @@ Deno.test({
 		const { promise, resolve } = Promise.withResolvers<void>();
 
 		const { plugin, setSpy, getSpy } = createSpyPlugin({
-			getItem(key) {
+			getItem(_key) {
 				return "bar";
 			},
 		});
@@ -97,10 +97,10 @@ Deno.test({
 		const { promise: getPluginPromise, resolve: resolveGet } = Promise.withResolvers<void>();
 
 		const { plugin } = createSpyPlugin({
-			async setItem(key, value) {
+			async setItem(_key, _value) {
 				await setPluginPromise;
 			},
-			async getItem(key) {
+			async getItem(_key) {
 				await getPluginPromise;
 				return "bar";
 			},
@@ -144,7 +144,7 @@ Deno.test({
 	name: "Item values are cached when requested a second time",
 	async fn() {
 		const { plugin, getSpy } = createSpyPlugin({
-			getItem(key) {
+			getItem(_key) {
 				return "foo";
 			},
 		});

@@ -54,7 +54,7 @@ export class AdladStorage {
 		function tryAccessStorage(cb) {
 			try {
 				return cb();
-			} catch (error) {
+			} catch {
 				if (!didLogStorageErrorWarning) {
 					console.warn("Failed to access localStorage, the user might be browsing in a private window.");
 					didLogStorageErrorWarning = true;
