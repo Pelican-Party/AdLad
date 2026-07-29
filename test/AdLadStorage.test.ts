@@ -29,21 +29,21 @@ function createSpyPlugin({
 
 function createMockLocalStorage(throws = false) {
 	const values = new Map<string, string>();
-	const setSpy = stub(localStorage, "setItem", (key, value) => {
+	const setSpy = spy((key: string, value: string) => {
 		if (throws) throw new Error("the local storage api is not available");
 		values.set(key, String(value));
 	});
-	const getSpy = stub(localStorage, "getItem", (key) => {
+	const getSpy = spy((key: string) => {
 		if (throws) throw new Error("the local storage api is not available");
 		const value = values.get(key);
 		if (value == undefined) return null;
 		return value;
 	});
-	const storage = {
+	const localStorage = {
 		getItem: getSpy,
 		setItem: setSpy,
 	} as unknown as Storage;
-	return { storage, setSpy, getSpy };
+	return { localStorage, setSpy, getSpy };
 }
 
 function createMockConsole() {
@@ -128,14 +128,14 @@ Deno.test({
 Deno.test({
 	name: "Value is undefined when a key doesn't exist",
 	async fn() {
-		const { storage } = createMockLocalStorage();
-		const adLadStorage = new AdladStorage({
+		const { localStorage } = createMockLocalStorage();
+		const storage = new AdladStorage({
 			plugin: null,
 			pluginInitializePromise: null,
-			storage,
+			localStorage,
 		});
 
-		const value = await adLadStorage.getStorageItem("foo");
+		const value = await storage.getStorageItem("foo");
 		assertEquals(value, undefined);
 	},
 });
@@ -221,23 +221,23 @@ Deno.test({
 Deno.test({
 	name: "Falls back to localstorage when no plugin is active",
 	async fn() {
-		const { storage, setSpy, getSpy } = createMockLocalStorage();
+		const { localStorage, setSpy, getSpy } = createMockLocalStorage();
 
-		const adLadStorage1 = new AdladStorage({
+		const storage1 = new AdladStorage({
 			plugin: null,
 			pluginInitializePromise: null,
-			storage,
+			localStorage,
 		});
 
-		await adLadStorage1.setStorageItem("foo", "foo");
+		await storage1.setStorageItem("foo", "foo");
 		assertSpyCalls(setSpy, 1);
 
-		const adLadStorage2 = new AdladStorage({
+		const storage2 = new AdladStorage({
 			plugin: null,
 			pluginInitializePromise: null,
-			storage,
+			localStorage,
 		});
-		const result2 = await adLadStorage2.getStorageItem("foo");
+		const result2 = await storage2.getStorageItem("foo");
 		assertEquals(result2, "foo");
 		assertSpyCalls(getSpy, 1);
 	},
@@ -246,26 +246,26 @@ Deno.test({
 Deno.test({
 	name: "When localstorage throws, only one warning is logged",
 	async fn() {
-		const { storage } = createMockLocalStorage(true);
+		const { localStorage } = createMockLocalStorage(true);
 		const { console, warnSpy } = createMockConsole();
 
-		const adLadStorage = new AdladStorage({
+		const storage = new AdladStorage({
 			plugin: null,
 			pluginInitializePromise: null,
-			storage,
+			localStorage,
 			console,
 		});
 
-		await adLadStorage.setStorageItem("foo", "foo");
+		await storage.setStorageItem("foo", "foo");
 		assertSpyCalls(warnSpy, 1);
 		assertSpyCall(warnSpy, 0, {
 			args: ["Failed to access localStorage, the user might be browsing in a private window."],
 		});
 
-		await adLadStorage.setStorageItem("foo", "bar");
+		await storage.setStorageItem("foo", "bar");
 		assertSpyCalls(warnSpy, 1);
 
-		const result = await adLadStorage.getStorageItem("foo");
+		const result = await storage.getStorageItem("foo");
 		assertEquals(result, "bar");
 		assertSpyCalls(warnSpy, 1);
 	},
@@ -274,72 +274,108 @@ Deno.test({
 Deno.test({
 	name: "Falls back to localstorage when plugin doesn't integrate the storage hooks",
 	async fn() {
-		const { storage, setSpy, getSpy } = createMockLocalStorage();
+		const { localStorage, setSpy, getSpy } = createMockLocalStorage();
 
-		const adLadStorage1 = new AdladStorage({
+		const storage1 = new AdladStorage({
 			plugin: {
 				name: "plugin",
 			},
 			pluginInitializePromise: Promise.resolve(),
-			storage,
+			localStorage,
 		});
 
-		await adLadStorage1.setStorageItem("foo", "foo");
+		await storage1.setStorageItem("foo", "foo");
 		assertSpyCalls(setSpy, 1);
 
-		const adLadStorage2 = new AdladStorage({
+		const storage2 = new AdladStorage({
 			plugin: {
 				name: "plugin",
 			},
 			pluginInitializePromise: null,
-			storage,
+			localStorage,
 		});
-		const result = await adLadStorage2.getStorageItem("foo");
+		const result = await storage2.getStorageItem("foo");
 		assertEquals(result, "foo");
 		assertSpyCalls(getSpy, 1);
 	},
 });
 
 Deno.test({
-	name: "Falls back to localstorage when no plugin is active",
+	name: "Falls back to localstorage when setStorageItem plugin call fails",
 	async fn() {
-		const { storage, setSpy, getSpy } = createMockLocalStorage();
-
-		const adLadStorage1 = new AdladStorage({
-			plugin: null,
-			pluginInitializePromise: null,
-			storage,
+		const { localStorage, setSpy } = createMockLocalStorage();
+		const { console, warnSpy } = createMockConsole();
+		const { plugin } = createSpyPlugin({
+			setItem(key, value) {
+				throw new Error("custom plugin error");
+			},
 		});
 
-		await adLadStorage1.setStorageItem("foo", "foo");
+		const storage = new AdladStorage({
+			plugin,
+			pluginInitializePromise: Promise.resolve(),
+			localStorage,
+			console,
+		});
+
+		await storage.setStorageItem("foo", "foo");
 		assertSpyCalls(setSpy, 1);
-
-		const adLadStorage2 = new AdladStorage({
-			plugin: null,
-			pluginInitializePromise: null,
-			storage,
+		assertSpyCalls(warnSpy, 1);
+		assertSpyCall(warnSpy, 0, {
+			args: [
+				`Failed to store data via the "spy plugin" plugin. Falling back to localStorage.\nError: custom plugin error`,
+			],
 		});
-		const result2 = await adLadStorage2.getStorageItem("foo");
-		assertEquals(result2, "foo");
+	},
+});
+
+Deno.test({
+	name: "Falls back to localstorage when getStorageItem plugin call fails",
+	async fn() {
+		const { localStorage, getSpy, setSpy } = createMockLocalStorage();
+		setSpy("foo", '"bar"');
+		const { console, warnSpy } = createMockConsole();
+
+		const { plugin } = createSpyPlugin({
+			getItem(key) {
+				throw new Error("custom plugin error");
+			},
+		});
+
+		const storage = new AdladStorage({
+			plugin,
+			pluginInitializePromise: Promise.resolve(),
+			localStorage,
+			console,
+		});
+
+		const result = await storage.getStorageItem("foo");
 		assertSpyCalls(getSpy, 1);
+		assertSpyCalls(warnSpy, 1);
+		assertSpyCall(warnSpy, 0, {
+			args: [
+				`Failed to retrieve data from the "spy plugin" plugin. Falling back to localStorage.\nError: custom plugin error`,
+			],
+		});
+		assertEquals(result, "bar");
 	},
 });
 
 Deno.test({
 	name: "Values are always serialized to json even when no plugin is active",
 	async fn() {
-		const { storage } = createMockLocalStorage();
+		const { localStorage } = createMockLocalStorage();
 
-		const adLadStorage = new AdladStorage({
+		const storage = new AdladStorage({
 			plugin: null,
 			pluginInitializePromise: null,
-			storage,
+			localStorage,
 		});
 
 		async function test(setValue: unknown, expectedValue: unknown) {
-			await adLadStorage.setStorageItem("value", setValue);
+			await storage.setStorageItem("value", setValue);
 
-			const result = await adLadStorage.getStorageItem("value");
+			const result = await storage.getStorageItem("value");
 			assertEquals(result, expectedValue);
 		}
 
@@ -396,6 +432,29 @@ Deno.test({
 		assertEquals(result, {
 			date: "2026-07-28T15:53:55.353Z",
 			map: {},
+		});
+	},
+});
+
+Deno.test({
+	name: "Values are always serialized to json, even when the plugin currently has non json values stored",
+	async fn() {
+		const storage = new AdladStorage({
+			plugin: {
+				name: "plugin",
+				getStorageItem(key) {
+					return {
+						date: new Date("2026-07-28T15:53:55.353Z"),
+						fn: () => {},
+					};
+				},
+			},
+			pluginInitializePromise: Promise.resolve(),
+		});
+
+		const result = await storage.getStorageItem("foo");
+		assertEquals(result, {
+			date: "2026-07-28T15:53:55.353Z",
 		});
 	},
 });

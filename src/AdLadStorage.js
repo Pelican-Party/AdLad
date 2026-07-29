@@ -22,19 +22,26 @@ export class AdladStorage {
 	 * @param {Object} options
 	 * @param {import("./AdLad.js").AdLadPlugin?} options.plugin
 	 * @param {Promise<void>?} options.pluginInitializePromise
-	 * @param {Storage} [options.storage]
+	 * @param {Storage} [options.localStorage]
 	 * @param {Console} [options.console]
 	 */
 	constructor({
 		plugin,
 		pluginInitializePromise,
-		storage = globalThis.localStorage,
+		localStorage = globalThis.localStorage,
 		console = globalThis.console,
 	}) {
 		/** @private */
 		this._plugin = plugin;
 		/** @private */
 		this._pluginInitializePromise = pluginInitializePromise;
+		/** @private */
+		this._localStorage = localStorage;
+		/** @private */
+		this._console = console;
+
+		/** @private */
+		this._didLogStorageErrorWarning = false;
 
 		/** @private @type {Map<string, string>} */
 		this._cachedValues = new Map();
@@ -44,52 +51,26 @@ export class AdladStorage {
 		 * @private @type {Set<string>}
 		 */
 		this._cachedKeys = new Set();
+	}
 
-		let didLogStorageErrorWarning = false;
-		/**
-		 * @template T
-		 * @param {() => T} cb
-		 * @returns {T | undefined}
-		 */
-		function tryAccessStorage(cb) {
-			try {
-				return cb();
-			} catch {
-				if (!didLogStorageErrorWarning) {
-					console.warn("Failed to access localStorage, the user might be browsing in a private window.");
-					didLogStorageErrorWarning = true;
-				}
-			}
-		}
-
-		/** @private @type {(key: string, value: unknown) => Promise<void> | void} */
-		this._setPluginStorage = (key, value) => {
-			tryAccessStorage(() => storage.setItem(key, serializeJson(value)));
-		};
-
-		/** @private @type {(key: string) => Promise<unknown> | unknown} */
-		this._getPluginStorage = (key) => {
-			const value = tryAccessStorage(() => storage.getItem(key));
-			return deserializeJson(value);
-		};
-
-		if (plugin) {
-			if (plugin.setStorageItem) {
-				const setStorage = plugin.setStorageItem.bind(plugin);
-				this._setPluginStorage = async (key, value) => {
-					await setStorage(key, value);
-				};
-			}
-			if (plugin.getStorageItem) {
-				const getStorage = plugin.getStorageItem.bind(plugin);
-				this._getPluginStorage = async (key) => {
-					return await getStorage(key);
-				};
+	/**
+	 * @template T
+	 * @param {() => T} cb
+	 * @returns {T | undefined}
+	 */
+	_tryAccessStorage(cb) {
+		try {
+			return cb();
+		} catch {
+			if (!this._didLogStorageErrorWarning) {
+				this._console.warn("Failed to access localStorage, the user might be browsing in a private window.");
+				this._didLogStorageErrorWarning = true;
 			}
 		}
 	}
 
 	/**
+	 * @private
 	 * @param {string} key
 	 * @param {unknown} value
 	 */
@@ -107,7 +88,19 @@ export class AdladStorage {
 	async setStorageItem(key, value) {
 		this._cacheValue(key, value);
 		await this._pluginInitializePromise;
-		await this._setPluginStorage(key, value);
+		if (this._plugin?.setStorageItem) {
+			try {
+				await this._plugin.setStorageItem(key, value);
+				return;
+			} catch (error) {
+				this._console.warn(
+					`Failed to store data via the "${this._plugin.name}" plugin. Falling back to localStorage.\n${error}`,
+				);
+			}
+		}
+
+		// Fall back to localstorage if the plugin fails or doesn't implement the API
+		this._tryAccessStorage(() => this._localStorage.setItem(key, serializeJson(value)));
 	}
 
 	/**
@@ -120,8 +113,27 @@ export class AdladStorage {
 		if (this._cachedKeys.has(key)) {
 			return deserializeJson(this._cachedValues.get(key));
 		}
-		const result = await this._getPluginStorage(key);
-		const serialized = this._cacheValue(key, result);
+
+		let result;
+		let needsFallback = true;
+		if (this._plugin?.getStorageItem) {
+			try {
+				result = await this._plugin.getStorageItem(key);
+				needsFallback = false;
+			} catch (error) {
+				this._console.warn(
+					`Failed to retrieve data from the "${this._plugin.name}" plugin. Falling back to localStorage.\n${error}`,
+				);
+			}
+		}
+
+		let serialized;
+		if (needsFallback) {
+			serialized = this._tryAccessStorage(() => this._localStorage.getItem(key));
+		} else {
+			serialized = this._cacheValue(key, result);
+		}
+
 		return /** @type {T} */ (deserializeJson(serialized));
 	}
 }
