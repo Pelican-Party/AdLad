@@ -110,10 +110,10 @@ import { generateUuid } from "./util.js";
  * a json serializable object. If this hook is not implemented, AdLad will default to storing values using the
  * localStorage api.
  * @property {(key: string) => unknown | Promise<unknown>} [getStorageItem] Hook that gets called when the
- * developer wishes to retreive data from the cloud sync account of the user. You should return the exact
+ * developer wishes to retrieve data from the cloud sync account of the user. You should return the exact
  * object that was provided in `setStorageItem` without modifying its format. You don't need to implement
- * any caching logic, as AdLad already does this for you. Any value provided by `setStorageItem` or retreived from
- * `getStorageItem` within the same session will be stored in memory and no more `getStorageItem` will be made
+ * any caching logic, as AdLad already does this for you. Any value provided by `setStorageItem` or retrieved from
+ * `getStorageItem` within the same session will be stored in memory and no more `getStorageItem` calls will be made
  * for that key until the page is refreshed.
  *
  * @property {Object.<string, (...args: any[]) => any>} [customRequests]
