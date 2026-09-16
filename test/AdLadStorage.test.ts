@@ -55,7 +55,7 @@ function createMockConsole() {
 }
 
 Deno.test({
-	name: "Items are not stored and retreived until the plugin is ready",
+	name: "Items are not stored and retrieved until the plugin is ready",
 	async fn() {
 		const { promise, resolve } = Promise.withResolvers<void>();
 
