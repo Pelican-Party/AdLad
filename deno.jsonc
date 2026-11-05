@@ -5,18 +5,21 @@
 	},
 	"tasks": {
 		// Updates third party types. Useful if you want type checking in your IDE.
-		"dev": "deno run --unstable -A --node-modules-dir=false scripts/dev.js",
+		"dev": "deno run --unstable -A scripts/dev.js",
 		// run the tests
-		"test": "deno test --no-check --node-modules-dir=false",
+		"test": "deno test --no-check",
 		// performs all tasks that are generally required for ci to pass
-		"check": "deno fmt --check && deno lint && deno test --no-check=remote --node-modules-dir=false",
+		"check": "deno fmt --check && deno lint && deno test --no-check=remote",
 		// Bundles AdLad into a single file so that it can be published to package managers.
-		"bundle": "deno run -A --node-modules-dir=false scripts/bundle.js"
+		"bundle": "deno run -A scripts/bundle.js"
 	},
+	"nodeModulesDir": "auto",
+	"lock": false,
 	"fmt": {
 		"exclude": [
 			".denoTypes",
-			"dist"
+			"dist",
+			".github/workflows"
 		],
 		"indentWidth": 4,
 		"useTabs": true,
@@ -28,7 +31,7 @@
 			"dist"
 		],
 		"rules": {
-			"exclude": ["require-await", "no-explicit-any", "no-window"]
+			"exclude": ["require-await", "no-explicit-any", "no-window", "no-import-prefix"]
 		}
 	},
 	"importMap": "importmap.json"

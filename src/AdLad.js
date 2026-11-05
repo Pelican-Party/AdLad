@@ -314,8 +314,8 @@ export class AdLad {
 		/** @private @type {boolean} */
 		this._pluginInitializeFailed = false;
 		let foundPlugin = false;
-		if (allowQueryStringPluginSelection && window.location) {
-			const url = new URL(window.location.href);
+		if (allowQueryStringPluginSelection && globalThis.location) {
+			const url = new URL(globalThis.location.href);
 			const queryPlugin = url.searchParams.get(pluginSelectQueryStringKey);
 			if (queryPlugin) {
 				const plugin = plugins.find((p) => p.name == queryPlugin) || null;

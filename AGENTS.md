@@ -7,7 +7,7 @@ to the "active plugin" that talks to a specific portal (CrazyGames, Poki, GameDi
 integrations live in separate `adlad-plugin-*` repos, this repo is the core library, published to npm as `@adlad/adlad`.
 
 - Plain ESM JavaScript typed with JSDoc (`checkJs: true`), there are no `.ts` sources.
-- Runtime is Deno, pinned to 1.46.3 (see `.dvmrc`).
+- Runtime is Deno, pinned to 2.9.8 (see `.dvmrc`).
 - `mod.js` is the package entry point, sources in `src/`, tests in `test/`.
 
 ## Commands
@@ -21,9 +21,10 @@ integrations live in separate `adlad-plugin-*` repos, this repo is the core libr
 - Formatting is enforced by `deno fmt`: tabs, indent width 4, line width 120.
 - Types are JSDoc: `@typedef`, `@param`, `@returns`. The public typedefs in `src/AdLad.js` (`AdLadPlugin`,
   `ShowFullScreenAdResult`, ...) are the API documentation, keep them accurate.
-- Dependencies are pinned by URL in `importmap.json` (`$std/`, `$fake-dom/`, `$chdir_anywhere`). There is no
-  npm/node_modules involved in development.
-- Lint rules disabled: `require-await`, `no-explicit-any`, `no-window`.
+- Dependencies are pinned by URL in `importmap.json` (`$std/`, `$fake-dom/`, `$chdir_anywhere`). npm packages are only
+  used by the scripts and are managed by Deno itself (`nodeModulesDir: "auto"`). The lockfile is disabled
+  (`lock: false`).
+- Lint rules disabled: `require-await`, `no-explicit-any`, `no-window`, `no-import-prefix`.
 - `.denoTypes/` and `dist/` are generated and gitignored.
 
 ## Architecture

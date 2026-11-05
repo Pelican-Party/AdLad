@@ -153,12 +153,12 @@ Deno.test({
  * @param {string} queryString
  */
 function mockQueryString(queryString) {
-	const previousLocation = window.location;
-	window.location = /** @type {Location} */ ({
+	const previousLocation = globalThis.location;
+	globalThis.location = /** @type {string & Location} */ ({
 		href: "https://example.com/" + queryString,
 	});
 	return function restore() {
-		window.location = previousLocation;
+		globalThis.location = /** @type {string & Location} */ (previousLocation);
 	};
 }
 
