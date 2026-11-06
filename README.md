@@ -33,16 +33,16 @@ To quickly get started, you can use jsdelivr.com to import AdLad:
 
 ```html
 <script type="module">
-	import { AdLad } from "https://cdn.jsdelivr.net/npm/@adlad/adlad/mod.min.js";
+import { AdLad } from "https://cdn.jsdelivr.net/npm/@adlad/adlad/mod.min.js";
 
-	// You need at least one plugin in order for AdLad calls to function.
-	import { crazyGamesPlugin } from "https://cdn.jsdelivr.net/npm/@adlad/plugin-crazygames/mod.min.js";
+// You need at least one plugin in order for AdLad calls to function.
+import { crazyGamesPlugin } from "https://cdn.jsdelivr.net/npm/@adlad/plugin-crazygames/mod.min.js";
 
-	const adLad = new AdLad({
-		plugins: [
-			crazyGamesPlugin(),
-		],
-	});
+const adLad = new AdLad({
+	plugins: [
+		crazyGamesPlugin(),
+	],
+});
 </script>
 ```
 
