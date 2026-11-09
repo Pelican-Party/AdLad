@@ -511,7 +511,8 @@ Deno.test({
 				args: [{ _foo2: 4, _bar2: "str2" }],
 			});
 
-			// TODO #19 ts-expect-error gameplayStart should exect one parameter
+			// TODO #19 Making this an error requires restructuring these methods into assigned
+			// properties (like gameplayStart), so that omission of the options can be conditional.
 			await adLad.showFullScreenAd();
 
 			await adLad.showFullScreenAd({

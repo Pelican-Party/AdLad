@@ -607,6 +607,29 @@ export class AdLad {
 	 */
 
 	/**
+	 * The type of the `pluginOptions` object for methods that pass options along to plugins,
+	 * such as showFullScreenAd. This mirrors the options parameter of gameplayStart and gameplayStop:
+	 * - When none of the plugins take options and the plugins are exactly known, no options may be passed in.
+	 * - When the used plugins are only known as `AdLadPlugin` (or `any`), any of the runtime-provided plugins
+	 *   might still take options. So an options object keyed by plugin name is allowed, even though none of
+	 *   the hooks declare a parameter in the type system.
+	 * - When at least one plugin takes options, the options of each plugin that takes options are required
+	 *   whenever options are passed in.
+	 * @template {AdLadPlugin} TPlugins
+	 * @template {string} TOptionsName
+	 * @template {number} TArgIndex
+	 * @typedef {CollectPluginArgs<TPlugins, TOptionsName, TArgIndex> extends infer TOptions ?
+	 * 	TOptions extends Record<string, never> ?
+	 * 		string extends TPlugins["name"] ?
+	 * 			Record<string, any> :
+	 * 			never :
+	 * 		unknown extends TPlugins ?
+	 * 			Record<string, any> :
+	 * 			TOptions :
+	 * 	never} CreatePluginCallOptions
+	 */
+
+	/**
 	 * @private
 	 */
 	async _updateGameplayStartState() {
@@ -771,13 +794,14 @@ export class AdLad {
 	/**
 	 * Waits for the plugin to initialize and shows a full screen ad once it's ready.
 	 * @param {Object} options
-	 * @param {CollectPluginArgs<TPlugins, "showFullScreenAd", 0>} [options.pluginOptions]
+	 * @param {CreatePluginCallOptions<TPlugins, "showFullScreenAd", 0>} [options.pluginOptions]
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showFullScreenAd(options = {}) {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showFullScreenAd;
-		return await this._showPluginFullScreenAd(showFn, options.pluginOptions);
+		const pluginOptions = /** @type {Object.<string, any> | undefined} */ (options.pluginOptions);
+		return await this._showPluginFullScreenAd(showFn, pluginOptions);
 	}
 
 	/**
@@ -810,13 +834,14 @@ export class AdLad {
 	/**
 	 * Waits for the plugin to initialize and shows a rewarded ad once it's ready.
 	 * @param {Object} options
-	 * @param {CollectPluginArgs<TPlugins, "showRewardedAd", 0>} [options.pluginOptions]
+	 * @param {CreatePluginCallOptions<TPlugins, "showRewardedAd", 0>} [options.pluginOptions]
 	 * @returns {Promise<ShowFullScreenAdResult>}
 	 */
 	async showRewardedAd(options = {}) {
 		let showFn;
 		if (this._plugin) showFn = this._plugin.showRewardedAd;
-		return await this._showPluginFullScreenAd(showFn, options.pluginOptions);
+		const pluginOptions = /** @type {Object.<string, any> | undefined} */ (options.pluginOptions);
+		return await this._showPluginFullScreenAd(showFn, pluginOptions);
 	}
 
 	/**
@@ -849,7 +874,7 @@ export class AdLad {
 	/**
 	 * @param {HTMLElement | string} element
 	 * @param {Object} options
-	 * @param {CollectPluginArgs<TPlugins, "showBannerAd", 1>} [options.pluginOptions]
+	 * @param {CreatePluginCallOptions<TPlugins, "showBannerAd", 1>} [options.pluginOptions]
 	 */
 	async showBannerAd(element, options = {}) {
 		this._assertNotDispossed();
@@ -890,7 +915,7 @@ export class AdLad {
 	/**
 	 * @param {HTMLElement | string} element
 	 * @param {Object} options
-	 * @param {CollectPluginArgs<TPlugins, "destroyBannerAd", 1>} [options.pluginOptions]
+	 * @param {CreatePluginCallOptions<TPlugins, "destroyBannerAd", 1>} [options.pluginOptions]
 	 */
 	async destroyBannerAd(element, options = {}) {
 		this._assertNotDispossed();
