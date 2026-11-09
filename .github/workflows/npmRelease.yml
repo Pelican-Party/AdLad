@@ -1,7 +1,8 @@
 name: Publish Package to npmjs
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+    paths: ['package.json']
   workflow_dispatch:
 
 permissions:
@@ -14,16 +15,32 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - id: should-publish
+        run: |
+          published=$(npm view @adlad/adlad version 2>/dev/null || echo "none")
+          local=$(node -p "require('./package.json').version")
+          if [ "$published" != "$local" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing $local (npm has $published)"
+          else
+            echo "Version $local already published, skipping"
+          fi
+
       - name: Setup Deno
+        if: steps.should-publish.outputs.publish == 'true'
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: v2.9.8
 
       - run: deno task check
+        if: steps.should-publish.outputs.publish == 'true'
       - run: deno task bundle
+        if: steps.should-publish.outputs.publish == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.should-publish.outputs.publish == 'true'
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
       - run: npm publish
+        if: steps.should-publish.outputs.publish == 'true'

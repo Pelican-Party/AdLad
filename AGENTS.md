@@ -50,5 +50,5 @@ integrations live in separate `adlad-plugin-*` repos, this repo is the core libr
 ## CI
 
 - `.github/workflows/check.yml` runs `deno task check` on pushes and PRs to `main`.
-- `.github/workflows/npmRelease.yml` publishes to npm on GitHub release: `deno task check`, `deno task bundle`, then
-  `npm publish`.
+- `.github/workflows/npmRelease.yml` publishes to npm when a push to `main` changes `package.json`, but only if the
+  version isn't already on npm: `deno task check`, `deno task bundle`, then `npm publish`.
