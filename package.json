@@ -1,6 +1,6 @@
 {
 	"name": "@adlad/adlad",
-	"version": "1.2.0",
+	"version": "2.0.0",
 	"description": "Ad sdks management for web games made easy.",
 	"main": "mod.js",
 	"types": "dist/AdLad.d.ts",
@@ -17,6 +17,5 @@
 	"bugs": {
 		"url": "https://github.com/Pelican-Party/AdLad/issues"
 	},
-	"homepage": "https://github.com/Pelican-Party/AdLad#readme",
-	"_tmp": "test"
+	"homepage": "https://github.com/Pelican-Party/AdLad#readme"
 }
