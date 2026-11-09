@@ -511,8 +511,7 @@ Deno.test({
 				args: [{ _foo2: 4, _bar2: "str2" }],
 			});
 
-			// TODO #19 Making this an error requires restructuring these methods into assigned
-			// properties (like gameplayStart), so that omission of the options can be conditional.
+			// @ts-expect-error pluginOptions are required, since some plugins take options
 			await adLad.showFullScreenAd();
 
 			await adLad.showFullScreenAd({
@@ -666,5 +665,25 @@ Deno.test({
 		} finally {
 			consoleStub.restore();
 		}
+	},
+});
+
+Deno.test({
+	name: "Full screen ads may be called with or without options when the plugin types are unknown",
+	fn() {
+		// Created without a type argument, so the plugins are only known as AdLadPlugin.
+		const adLad = new AdLad();
+		adLad.showFullScreenAd();
+		adLad.showFullScreenAd({ pluginOptions: { anything: { _foo: true } } });
+		adLad.showRewardedAd();
+		adLad.showRewardedAd({ pluginOptions: { anything: { _foo: true } } });
+
+		// Created with an explicitly unknown plugin type.
+		/** @type {AdLad<any>} */
+		const anyAdLad = new AdLad();
+		anyAdLad.showFullScreenAd();
+		anyAdLad.showFullScreenAd({ pluginOptions: { anything: { _foo: true } } });
+		anyAdLad.showRewardedAd();
+		anyAdLad.showRewardedAd({ pluginOptions: { anything: { _foo: true } } });
 	},
 });

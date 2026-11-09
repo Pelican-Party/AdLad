@@ -423,11 +423,13 @@ testTypes({
 			pluginOptions: {},
 		});
 
-		// TODO #19 Making bare calls without pluginOptions an error requires restructuring these
-		// methods into assigned properties (like gameplayStart), so that omission can be conditional.
+		// @ts-expect-error pluginOptions are required, since some plugins take options
 		adLad.showBannerAd(el);
+		// @ts-expect-error pluginOptions are required, since some plugins take options
 		adLad.showBannerAd(el, {});
+		// @ts-expect-error pluginOptions are required, since some plugins take options
 		adLad.destroyBannerAd(el);
+		// @ts-expect-error pluginOptions are required, since some plugins take options
 		adLad.destroyBannerAd(el, {});
 	},
 });
@@ -453,6 +455,20 @@ testTypes({
 		adLad.destroyBannerAd(el, { pluginOptions: { "plugin-a": { foo: "str" } } });
 		// @ts-expect-error No plugin takes options, so pluginOptions may not be passed in.
 		adLad.showBannerAd(el, { pluginOptions: {} });
+	},
+});
+
+testTypes({
+	name: "Banner ads may be called with or without options when the plugin types are unknown",
+	fn() {
+		/** @type {AdLad<any>} */
+		const adLad = new AdLad();
+		const el = createMockElement();
+
+		adLad.showBannerAd(el);
+		adLad.showBannerAd(el, { pluginOptions: { anything: { foo: "str" } } });
+		adLad.destroyBannerAd(el);
+		adLad.destroyBannerAd(el, { pluginOptions: {} });
 	},
 });
 
