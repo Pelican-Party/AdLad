@@ -173,9 +173,21 @@ const invalidQueryStringBehaviourTypes = [
  */
 
 /**
- * Utility that removes `never` and `undefined` types from an object.
+ * Utility that removes properties of type `never`, `undefined` and `void` from an object,
+ * since parameters of those types don't require developers to pass in a value.
+ * `any` and `unknown` are deliberately not removed: a hook that declares such a parameter still
+ * requires developers to pass in options.
+ *
+ * Note: `never` is checked separately, because tsc strips `never` from unions in types when
+ * generating declarations, which would change the meaning of the condition below.
  * @template T
- * @typedef {{ [K in keyof T as T[K] extends never | undefined ? never : K]: T[K] }} OmitMissing
+ * @typedef {{
+ * 	[K in keyof T as
+ * 		unknown extends T[K] ? K :
+ * 		[T[K]] extends [never] ? never :
+ * 		[T[K]] extends [undefined | void] ? never : K
+ * 	]: T[K]
+ * }} OmitMissing
  */
 
 /**
@@ -515,27 +527,33 @@ export class AdLad {
 		/** @private */
 		this._disposed = false;
 
-		this.gameplayStart = /** @type {CreatePluginCallSignature<"gameplayStart", boolean>} */ ((options) => {
-			this._lastGameplayStartState = true;
-			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
-				const castOptions = /** @type {Object.<string, unknown>} */ (options);
-				this._lastGameplayStartCallArgs = [castOptions[this.activePlugin]];
-			} else {
-				this._lastGameplayStartCallArgs = [];
+		this.gameplayStart = /** @type {CreatePluginCallSignature<"gameplayStart", boolean>} */ (
+			/** @param {Object.<string, any>} [options] */
+			(options) => {
+				this._lastGameplayStartState = true;
+				if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
+					const castOptions = /** @type {Object.<string, unknown>} */ (options);
+					this._lastGameplayStartCallArgs = [castOptions[this.activePlugin]];
+				} else {
+					this._lastGameplayStartCallArgs = [];
+				}
+				this._updateGameplayStartState();
 			}
-			this._updateGameplayStartState();
-		});
+		);
 
-		this.gameplayStop = /** @type {CreatePluginCallSignature<"gameplayStop", boolean>} */ ((options) => {
-			this._lastGameplayStartState = false;
-			if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
-				const castOptions = /** @type {Object.<string, unknown>} */ (options);
-				this._lastGameplayStopCallArgs = [castOptions[this.activePlugin]];
-			} else {
-				this._lastGameplayStopCallArgs = [];
+		this.gameplayStop = /** @type {CreatePluginCallSignature<"gameplayStop", boolean>} */ (
+			/** @param {Object.<string, any>} [options] */
+			(options) => {
+				this._lastGameplayStartState = false;
+				if (options && this.activePlugin && Object.prototype.hasOwnProperty.call(options, this.activePlugin)) {
+					const castOptions = /** @type {Object.<string, unknown>} */ (options);
+					this._lastGameplayStopCallArgs = [castOptions[this.activePlugin]];
+				} else {
+					this._lastGameplayStopCallArgs = [];
+				}
+				this._updateGameplayStartState();
 			}
-			this._updateGameplayStartState();
-		});
+		);
 
 		/** @private */
 		this._storage = new AdLadStorage({
@@ -571,12 +589,20 @@ export class AdLad {
 	/**
 	 * Creates a signature that either takes a single parameter, when one of the plugins also takes a parameter.
 	 * Or no parameter at all when none of the plugins do.
+	 *
+	 * When the used plugins are only known as `AdLadPlugin` (or `any`), any of the runtime-provided plugins
+	 * might still take options. So an options object keyed by plugin name is allowed, even though none of
+	 * the hooks declare a parameter in the type system.
 	 * @template {keyof AdLadPlugin} T
 	 * @template TReturn
 	 * @typedef {CollectPluginArgs<TPlugins, T, 0> extends infer TOptions ?
 	 * 	TOptions extends Record<string, never> ?
-	 * 		() => TReturn :
-	 * 		(options: TOptions) => TReturn :
+	 * 		string extends TPlugins["name"] ?
+	 * 			(options?: Object.<string, any>) => TReturn :
+	 * 			() => TReturn :
+	 * 		unknown extends TPlugins ?
+	 * 			(options?: Object.<string, any>) => TReturn :
+	 * 			(options: TOptions) => TReturn :
 	 * 	never} CreatePluginCallSignature
 	 */
 

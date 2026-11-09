@@ -28,11 +28,6 @@ Deno.test({
 		adLad.gameplayStop();
 		adLad.gameplayStart();
 		adLad.gameplayStop();
-
-		// @ts-expect-error 'gameplayStart' is expected to take 0 parameters
-		adLad.gameplayStart({});
-		// @ts-expect-error 'gameplayStop' is expected to take 0 parameters
-		adLad.gameplayStop({});
 	},
 });
 
@@ -49,11 +44,6 @@ Deno.test({
 		adLad.gameplayStop();
 		adLad.gameplayStart();
 		adLad.gameplayStop();
-
-		// @ts-expect-error 'gameplayStart' is expected to take 0 parameters
-		adLad.gameplayStart({});
-		// @ts-expect-error 'gameplayStop' is expected to take 0 parameters
-		adLad.gameplayStop({});
 	},
 });
 
@@ -496,6 +486,132 @@ Deno.test({
 		// @ts-expect-error 'gameplayStart' is expected to take 0 parameters
 		adLad.gameplayStart({});
 		// @ts-expect-error 'gameplayStop' is expected to take 0 parameters
+		adLad.gameplayStop({});
+	},
+});
+
+Deno.test({
+	name: "Plugins with loosely typed parameters still require options to be passed",
+	fn() {
+		const pluginA = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "plugina",
+			/** @param {any} _options */
+			gameplayStart(_options) {},
+			/** @param {any} _options */
+			gameplayStop(_options) {},
+		});
+		const pluginB = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "pluginb",
+			/** @param {Object} _options */
+			gameplayStart(_options) {},
+			/** @param {Object} _options */
+			gameplayStop(_options) {},
+		});
+
+		const adLad = new AdLad([pluginA, pluginB]);
+
+		// @ts-expect-error both plugins declare an options parameter, so options are required
+		adLad.gameplayStart();
+		adLad.gameplayStart({
+			plugina: {},
+			pluginb: {},
+		});
+
+		// @ts-expect-error both plugins declare an options parameter, so options are required
+		adLad.gameplayStop();
+		adLad.gameplayStop({
+			plugina: {},
+			pluginb: {},
+		});
+	},
+});
+
+Deno.test({
+	name: "Typed parameters of one plugin are still required when another plugin has loosely typed parameters",
+	fn() {
+		const pluginA = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "plugina",
+			/** @param {any} _options */
+			gameplayStart(_options) {},
+			/** @param {any} _options */
+			gameplayStop(_options) {},
+		});
+		const pluginB = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "pluginb",
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			gameplayStart({ _baz }) {},
+			/**
+			 * @param {Object} options
+			 * @param {boolean} options._baz
+			 */
+			gameplayStop({ _baz }) {},
+		});
+		// Add a third plugin to verify that plugins which don't take options don't become required keys.
+		const pluginC = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "pluginc",
+			gameplayStart() {},
+			gameplayStop() {},
+		});
+
+		const adLad = new AdLad([pluginA, pluginB, pluginC]);
+
+		// @ts-expect-error both plugins declare an options parameter, so options are required
+		adLad.gameplayStart();
+		adLad.gameplayStart({
+			plugina: {},
+			pluginb: {
+				_baz: true,
+			},
+		});
+
+		// @ts-expect-error both plugins declare an options parameter, so options are required
+		adLad.gameplayStop();
+		adLad.gameplayStop({
+			plugina: {},
+			pluginb: {
+				_baz: false,
+			},
+		});
+	},
+});
+
+Deno.test({
+	name: "A plugins union that resolves to any doesn't require options to be passed",
+	fn() {
+		const noParamsPlugin = /** @type {const} @satisfies {import("../../src/AdLad.js").AdLadPlugin} */ ({
+			name: "noparams",
+			gameplayStart() {},
+			gameplayStop() {},
+		});
+		// Simulates a plugin imported from somewhere without type information.
+		const _anyPlugin = /** @type {any} */ ({});
+
+		/** @typedef {ReturnType<typeof noParamsPlugin | typeof _anyPlugin>} AnyPlugins */
+
+		/** @type {AdLad<AnyPlugins>} */
+		const adLad = new AdLad([noParamsPlugin]);
+
+		adLad.gameplayStart();
+		adLad.gameplayStop();
+
+		// Options are allowed since the plugins could be anything.
+		adLad.gameplayStart({ noparams: { _foo: "str" } });
+		adLad.gameplayStop({});
+	},
+});
+
+Deno.test({
+	name: "A dynamically built list of plugins allows passing options",
+	fn() {
+		/** @type {import("../../src/AdLad.js").AdLadPlugin[]} */
+		const plugins = [];
+		const adLad = new AdLad(plugins);
+
+		adLad.gameplayStart();
+		adLad.gameplayStart({ plugin: { _foo: true } });
 		adLad.gameplayStop({});
 	},
 });
