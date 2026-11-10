@@ -1065,6 +1065,9 @@ export class AdLad {
 	 * ```js
 	 * adLad.customRequestsForPlugin("plugin-name").myCoolCustomRequest("foo");
 	 * ```
+	 *
+	 * Note that this still runs without any errors even if "plugin-name" is not the active plugin
+	 * or even if it is an invalid plugin name.
 	 * @template {TPlugins["name"]} TPluginName
 	 * @param {TPluginName} plugin
 	 */
